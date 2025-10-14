@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Sólidos de Revolución</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Plotly.js para las gráficas 2D y 3D (versión actualizada) -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <!-- Math.js para parsear las funciones matemáticas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.js"></script>
+    <!-- MathJax para renderizar la integral con formato matemático -->
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            macros: {
+              blue: ['{\\color{blue}{#1}}', 1],
+              red: ['{\\color{red}{#1}}', 1]
+            }
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .plot-container {
+            height: 450px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Visualizador de Sólidos de Revolución</h1>
+            <p class="text-lg text-gray-600 mt-2">Explora el método de discos y arandelas de forma interactiva.</p>
+        </header>
+
+        <!-- Panel de Controles -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Controles</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Función Externa -->
+                <div>
+                    <label for="f_x" class="block text-sm font-semibold text-blue-600">Función Externa: <span class="font-mono text-gray-700 font-medium">y = f(x) o x = f(y)</span></label>
+                    <input type="text" id="f_x" value="x^(1/2)" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Función Interna -->
+                <div>
+                    <label for="g_x" class="block text-sm font-semibold text-red-600">Función Interna: <span class="font-mono text-gray-700 font-medium">y = g(x) o x = g(y)</span></label>
+                    <input type="text" id="g_x" value="0" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Usa '0' para el método de discos.</p>
+                </div>
+                <!-- Límites de Integración -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="a" class="block text-sm font-medium text-gray-700">Límite Inferior (a)</label>
+                        <input type="number" id="a" value="1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="b" class="block text-sm font-medium text-gray-700">Límite Superior (b)</label>
+                        <input type="number" id="b" value="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                <!-- Eje de Rotación -->
+                <div>
+                    <label for="axis" class="block text-sm font-semibold text-orange-600">Eje de Rotación</label>
+                    <select id="axis" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="x">Eje X (y=0)</option>
+                        <option value="y=k">Recta Horizontal (y=k)</option>
+                        <option value="y">Eje Y (x=0)</option>
+                        <option value="x=h">Recta Vertical (x=h)</option>
+                    </select>
+                </div>
+            </div>
+             <!-- Inputs para rectas personalizadas (ocultos por defecto) -->
+            <div id="custom-axis-inputs" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                 <div id="k-input-container" class="hidden">
+                     <label for="k_val" class="block text-sm font-medium text-gray-700">Valor de k</label>
+                     <input type="number" id="k_val" value="-1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                 </div>
+                 <div id="h-input-container" class="hidden">
+                     <label for="h_val" class="block text-sm font-medium text-gray-700">Valor de h</label>
+                     <input type="number" id="h_val" value="-1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                 </div>
+            </div>
+            <!-- Mensaje de ayuda para rotación vertical -->
+            <p id="vertical-rotation-help" class="text-sm text-amber-700 bg-amber-100 p-3 rounded-md mt-4 hidden">
+                <strong>Atención:</strong> Para rotar sobre un eje vertical, las funciones deben estar en términos de y (ej. x = y^2) y los límites 'a' y 'b' corresponden al eje Y.
+            </p>
+             <!-- Botón de Generación -->
+             <div class="mt-6 pt-6 border-t border-gray-200">
+                <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="generate-btn-text">Generar Sólido</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Visualizaciones (Ocultas por defecto) -->
+        <div id="visuals-and-results-container" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-4 rounded-2xl shadow-lg">
+                    <h3 class="text-xl font-semibold text-center mb-2">Región Plana (2D)</h3>
+                    <div id="plot2d" class="plot-container"></div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-lg">
+                    <h3 class="text-xl font-semibold text-center mb-2">Sólido de Revolución (3D)</h3>
+                    <div id="plot3d" class="plot-container"></div>
+                </div>
+            </div>
+            
+            <!-- Resultados (Ocultos por defecto) -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4">Resultados del Cálculo</h2>
+                <div class="flex flex-col md:flex-row items-center justify-around text-center">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-600">Integral de Volumen</h3>
+                        <div id="integral-display" class="text-2xl mt-2 p-4"></div>
+                    </div>
+                    <div class="mt-6 md:mt-0">
+                        <h3 class="text-lg font-medium text-gray-600">Volumen del Sólido</h3>
+                        <p id="volume-display" class="text-4xl font-bold text-indigo-600 mt-2">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <footer class="text-center mt-12 text-gray-500">
+            <p>Diseñado por Departamento de Matemática Aplicada de Universidad Galileo + Gemini</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- Referencias a Elementos del DOM ---
+        const f_x_input = document.getElementById('f_x');
+        const g_x_input = document.getElementById('g_x');
+        const a_input = document.getElementById('a');
+        const b_input = document.getElementById('b');
+        const axis_select = document.getElementById('axis');
+        const k_input_container = document.getElementById('k-input-container');
+        const h_input_container = document.getElementById('h-input-container');
+        const k_val_input = document.getElementById('k_val');
+        const h_val_input = document.getElementById('h_val');
+        const vertical_rotation_help = document.getElementById('vertical-rotation-help');
+        const generate_btn = document.getElementById('generate-btn');
+        const generate_btn_text = document.getElementById('generate-btn-text');
+        const visuals_container = document.getElementById('visuals-and-results-container');
+        const plot2d_div = document.getElementById('plot2d');
+        const plot3d_div = document.getElementById('plot3d');
+        const integral_display_div = document.getElementById('integral-display');
+        const volume_display_div = document.getElementById('volume-display');
+        
+        let animationFrameId = null;
+
+        // --- Lógica de UI ---
+        function handleAxisChange() {
+            const selected_axis = axis_select.value;
+            k_input_container.classList.toggle('hidden', selected_axis !== 'y=k');
+            h_input_container.classList.toggle('hidden', selected_axis !== 'x=h');
+            vertical_rotation_help.classList.toggle('hidden', selected_axis !== 'y' && selected_axis !== 'x=h');
+        }
+
+        // --- Función Principal de Generación ---
+        function handleGenerateClick() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            generate_btn.disabled = true;
+            generate_btn_text.textContent = 'Generando...';
+            plot2d_div.innerHTML = '';
+            plot3d_div.innerHTML = '';
+            visuals_container.classList.remove('hidden');
+
+            setTimeout(() => {
+                try {
+                    const f_x_str = f_x_input.value || '0';
+                    const g_x_str = g_x_input.value || '0';
+                    const a = parseFloat(a_input.value);
+                    const b = parseFloat(b_input.value);
+                    const axis = axis_select.value;
+                    const k = (axis === 'y=k') ? parseFloat(k_val_input.value) : 0;
+                    const h = (axis === 'x=h') ? parseFloat(h_val_input.value) : 0;
+                    const is_vertical_rotation = (axis === 'y' || axis === 'x=h');
+
+                    if (isNaN(a) || isNaN(b) || a >= b) {
+                        showError("Límites 'a' y 'b' inválidos. Asegúrate que a < b.");
+                        return; // Detener ejecución si los límites son inválidos
+                    }
+
+                    const f = math.compile(f_x_str);
+                    const g = math.compile(g_x_str);
+                    
+                    const test_var = is_vertical_rotation ? {y: a} : {x: a};
+                    f.evaluate(test_var);
+                    g.evaluate(test_var);
+
+                    plot2D(f, g, a, b, axis, k, h);
+                    calculateAndDisplayVolume(f, g, a, b, axis, k, h);
+
+                    let start = null;
+                    const duration = 8000; // Duración de la animación en milisegundos (8 segundos)
+
+                    const step = (timestamp) => {
+                        if (!start) start = timestamp;
+                        const progress = timestamp - start;
+                        const angle = Math.min((progress / duration) * 360, 360);
+                        plot3D(f, g, a, b, angle, axis, k, h);
+                        if (progress < duration) {
+                            animationFrameId = requestAnimationFrame(step);
+                        } else {
+                            generate_btn.disabled = false;
+                            generate_btn_text.textContent = 'Generar Sólido';
+                            animationFrameId = null;
+                        }
+                    };
+                    animationFrameId = requestAnimationFrame(step);
+                } catch(err) {
+                     generate_btn.disabled = false;
+                     generate_btn_text.textContent = 'Generar Sólido';
+                     console.error(err);
+                     
+                     if (err.message.includes("Unexpected end of expression") || err.message.includes("Parenthesis ) expected")) {
+                         showError("Error de sintaxis. ¿Olvidaste los paréntesis? Escribe <b>sin(x)</b> en lugar de <b>sin x</b>.");
+                     } else {
+                        const helpful_error_message = `
+                            <div>
+                                <p class="font-bold text-lg mb-2">Error en la expresión</p>
+                                <p class="mb-3">Revisa la sintaxis de la función.</p>
+                                <div class="text-left text-sm p-3 bg-red-50 rounded-lg border border-red-200 text-gray-700">
+                                    <p class="font-semibold">Ejemplos de sintaxis correcta:</p>
+                                    <ul class="list-disc list-inside mt-1 space-y-1">
+                                        <li><b>Multiplicación:</b> <code>5*x</code> (no <code>5x</code>)</li>
+                                        <li><b>Potencias:</b> <code>x^2</code> (no <code>x2</code>)</li>
+                                        <li><b>Raíz cuadrada:</b> <code>sqrt(x)</code> o <code>x^(1/2)</code></li>
+                                        <li><b>Funciones Trig:</b> <code>sin(x)</code> (no <code>sin x</code>)</li>
+                                    </ul>
+                                </div>
+                            </div>`;
+                        showError(helpful_error_message);
+                     }
+                }
+            }, 50); 
+        }
+
+        function showError(message) {
+             plot2d_div.innerHTML = `<div class="w-full h-full flex items-center justify-center text-red-600 p-4 text-center">${message}</div>`;
+             plot3d_div.innerHTML = '';
+             integral_display_div.textContent = '';
+             volume_display_div.textContent = '--';
+        }
+
+        function plot2D(f, g, a, b, axis, k, h) {
+            const steps = 100;
+            const traces = [];
+            const is_vertical = (axis === 'y' || axis === 'x=h');
+            
+            if (is_vertical) {
+                const y_vals = math.range(a, b, (b - a) / steps, true).toArray();
+                const x_vals_f = y_vals.map(y => f.evaluate({ y }));
+                const x_vals_g = y_vals.map(y => g.evaluate({ y }));
+                traces.push({ x: x_vals_f, y: y_vals, mode: 'lines', name: 'x=f(y)', line: { color: 'rgb(59, 130, 246)', width: 3 } });
+                traces.push({ x: x_vals_g, y: y_vals, mode: 'lines', name: 'x=g(y)', line: { color: 'rgb(239, 68, 68)', width: 3 } });
+                traces.push({ x: x_vals_f.concat(x_vals_g.slice().reverse()), y: y_vals.concat(y_vals.slice().reverse()), fill: 'toself', fillcolor: 'rgba(59, 130, 246, 0.2)', line: { color: 'transparent' }, showlegend: false });
+                
+                // Dibuja el eje de revolución
+                const axis_x_val = (axis === 'y') ? 0 : h;
+                traces.push({ x: [axis_x_val, axis_x_val], y: [a, b], mode: 'lines', name: `Eje x=${axis_x_val}`, line: { color: 'orange', width: 2.5, dash: 'dash' } });
+
+            } else {
+                const x_vals = math.range(a, b, (b - a) / steps, true).toArray();
+                const y_vals_f = x_vals.map(x => f.evaluate({ x }));
+                const y_vals_g = x_vals.map(x => g.evaluate({ x }));
+                traces.push({ x: x_vals, y: y_vals_f, mode: 'lines', name: 'y=f(x)', line: { color: 'rgb(59, 130, 246)', width: 3 } });
+                traces.push({ x: x_vals, y: y_vals_g, mode: 'lines', name: 'y=g(x)', line: { color: 'rgb(239, 68, 68)', width: 3 } });
+                traces.push({ x: x_vals.concat(x_vals.slice().reverse()), y: y_vals_f.concat(y_vals_g.slice().reverse()), fill: 'toself', fillcolor: 'rgba(59, 130, 246, 0.2)', line: { color: 'transparent' }, showlegend: false });
+
+                // Dibuja el eje de revolución
+                const axis_y_val = (axis === 'x') ? 0 : k;
+                traces.push({ x: [a, b], y: [axis_y_val, axis_y_val], mode: 'lines', name: `Eje y=${axis_y_val}`, line: { color: 'orange', width: 2.5, dash: 'dash' } });
+            }
+            
+            const layout = { margin: { t: 20, r: 20, b: 40, l: 40 }, xaxis: { title: 'x' }, yaxis: { title: 'y', scaleanchor: "x", scaleratio: 1 }, legend: { x: 0.05, y: 0.95 } };
+            Plotly.newPlot(plot2d_div, traces, layout, {responsive: true});
+        }
+                
+        function plot3D(f, g, a, b, rotation_deg, axis, k, h) {
+            const rotation_rad = rotation_deg * Math.PI / 180;
+            const range_steps = 40;
+            const theta_steps = 40;
+
+            function createSurface(func, color) {
+                const z_surf = [], y_surf = [], x_surf = [];
+                const main_range = math.range(a, b, (b - a) / range_steps, true).toArray();
+                const theta_range = rotation_rad > 0 ? math.range(0, rotation_rad, rotation_rad / theta_steps, true).toArray() : [0];
+
+                for (let i = 0; i < main_range.length; i++) {
+                    const z_row = [], y_row = [], x_row = [];
+                    const val = main_range[i];
+                    for (let j = 0; j < theta_range.length; j++) {
+                        const theta = theta_range[j];
+                        let x, y, z;
+                        switch (axis) {
+                            case 'y': case 'x=h':
+                                const r_vert = func.evaluate({ y: val }) - h;
+                                x = h + r_vert * Math.cos(theta);
+                                y = val;
+                                z = r_vert * Math.sin(theta);
+                                break;
+                            case 'x': case 'y=k':
+                            default:
+                                const r_horiz = func.evaluate({ x: val }) - k;
+                                x = val;
+                                y = k + r_horiz * Math.cos(theta);
+                                z = r_horiz * Math.sin(theta);
+                                break;
+                        }
+                        x_row.push(x); y_row.push(y); z_row.push(z);
+                    }
+                    x_surf.push(x_row); y_surf.push(y_row); z_surf.push(z_row);
+                }
+                return { x: x_surf, y: y_surf, z: z_surf, type: 'surface', colorscale: color, showscale: false, hoverinfo: 'none' };
+            }
+            
+            const data = [createSurface(f, 'Blues')];
+            if (g_x_input.value.trim() !== '0' && g_x_input.value.trim() !== '') {
+                 data.push(createSurface(g, 'Reds'));
+            }
+
+            // Dibuja el eje de revolución en 3D
+            const is_vertical = (axis === 'y' || axis === 'x=h');
+            let axis_trace_3d = {
+                type: 'scatter3d',
+                mode: 'lines',
+                line: { color: 'orange', width: 5 },
+                name: 'Eje de Revolución',
+                hoverinfo: 'none'
+            };
+            if (is_vertical) {
+                const axis_x = (axis === 'y') ? 0 : h;
+                axis_trace_3d.x = [axis_x, axis_x];
+                axis_trace_3d.y = [a, b];
+                axis_trace_3d.z = [0, 0];
+            } else {
+                const axis_y = (axis === 'x') ? 0 : k;
+                axis_trace_3d.x = [a, b];
+                axis_trace_3d.y = [axis_y, axis_y];
+                axis_trace_3d.z = [0, 0];
+            }
+            data.push(axis_trace_3d);
+
+            const layout = { showlegend: false, margin: { t: 0, r: 0, b: 0, l: 0 }, scene: { aspectmode: 'data', camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } } } };
+            Plotly.newPlot(plot3d_div, data, layout, {responsive: true});
+        }
+        
+        function calculateAndDisplayVolume(f, g, a, b, axis, k, h) {
+            const n_steps = 1000;
+            let volume = 0;
+            const f_str_raw = f_x_input.value;
+            const g_str_raw = g_x_input.value.trim();
+            
+            const toLatex = (str) => {
+                try {
+                    // Use math.js's built-in parser and LaTeX converter for maximum robustness
+                    const node = math.parse(str);
+                    return node.toTex();
+                } catch (e) {
+                    console.error("LaTeX conversion failed, falling back to simple display:", e);
+                    // Fallback for any unexpected parsing error, just display the raw string
+                    return str.replace(/\*/g, ' ');
+                }
+            };
+
+            const f_str_latex = toLatex(f_str_raw);
+            const g_str_latex = toLatex(g_str_raw);
+            let integral_latex = '';
+            const is_disk_method = g_str_raw === '0' || g_str_raw === '';
+            
+            function formatLatexExpr(func_str, offset_val) {
+                if (offset_val === 0) return func_str;
+                if (offset_val < 0) return `\\left(${func_str} + ${Math.abs(offset_val)}\\right)`;
+                return `\\left(${func_str} - ${offset_val}\\right)`;
+            }
+
+            switch(axis) {
+                case 'y': case 'x=h': {
+                    const dy = (b - a) / n_steps;
+                    for (let i = 0; i < n_steps; i++) {
+                        const y = a + i * dy;
+                        const R = f.evaluate({ y }) - h;
+                        const r = is_disk_method ? 0 : g.evaluate({ y }) - h;
+                        volume += Math.PI * (Math.pow(R, 2) - Math.pow(r, 2)) * dy;
+                    }
+                    const R_expr = formatLatexExpr(f_str_latex, h);
+                    if (is_disk_method) {
+                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_expr}} \\right)^2 dy`;
+                    } else {
+                        const r_expr = formatLatexExpr(g_str_latex, h);
+                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${R_expr}} \\right)^2 - \\left( \\red{${r_expr}} \\right)^2 \\right] dy`;
+                    }
+                    break;
+                }
+                case 'x': case 'y=k':
+                default: {
+                    const dx = (b - a) / n_steps;
+                    for (let i = 0; i < n_steps; i++) {
+                        const x = a + i * dx;
+                        const R = f.evaluate({ x }) - k;
+                        const r = is_disk_method ? 0 : g.evaluate({ x }) - k;
+                        volume += Math.PI * (Math.pow(R, 2) - Math.pow(r, 2)) * dx;
+                    }
+                    const R_expr = formatLatexExpr(f_str_latex, k);
+                    if (is_disk_method) {
+                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_expr}} \\right)^2 dx`;
+                    } else {
+                        const r_expr = formatLatexExpr(g_str_latex, k);
+                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${R_expr}} \\right)^2 - \\left( \\red{${r_expr}} \\right)^2 \\right] dx`;
+                    }
+                    break;
+                }
+            }
+            
+            // --- Manejo de Errores de Dominio (NaN) ---
+            if (isNaN(volume)) {
+                volume_display_div.innerHTML = `<span class="text-2xl text-red-600">Error de Dominio</span>`;
+                integral_display_div.innerHTML = `<span class="text-sm text-red-600">La función no es real en el intervalo (ej. raíz de un negativo).</span>`;
+                return;
+            }
+
+            volume_display_div.textContent = Math.abs(volume).toFixed(4) + ' u³';
+            integral_display_div.innerHTML = `$${integral_latex}$`;
+            if (window.MathJax) {
+                 MathJax.typesetPromise().catch(function (err) {
+                    console.error('MathJax error: ', err);
+                 });
+            }
+        }
+        
+        // --- Event Listeners ---
+        axis_select.addEventListener('change', handleAxisChange);
+        generate_btn.addEventListener('click', handleGenerateClick);
+        
+        // --- Carga inicial ---
+        handleAxisChange();
+    </script>
+</body>
+</html>
+
