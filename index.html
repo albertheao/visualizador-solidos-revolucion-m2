@@ -50,24 +50,24 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Función Externa -->
                 <div>
-                    <label for="f_x" class="block text-sm font-semibold text-blue-600">Función Externa: <span class="font-mono text-gray-700 font-medium">y = f(x) o x = f(y)</span></label>
-                    <input type="text" id="f_x" value="x^(1/2)" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <label for="f_x" class="block text-sm font-semibold text-blue-600">Función 1: <span class="font-mono text-gray-700 font-medium">y=f(x) o x=f(y)</span></label>
+                    <input type="text" id="f_x" value="sqrt(y)" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <!-- Función Interna -->
                 <div>
-                    <label for="g_x" class="block text-sm font-semibold text-red-600">Función Interna: <span class="font-mono text-gray-700 font-medium">y = g(x) o x = g(y)</span></label>
-                    <input type="text" id="g_x" value="0" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <p class="text-xs text-gray-500 mt-1">Usa '0' para el método de discos.</p>
+                    <label for="g_x" class="block text-sm font-semibold text-red-600">Función 2: <span class="font-mono text-gray-700 font-medium">y=g(x) o x=g(y)</span></label>
+                    <input type="text" id="g_x" value="y" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Usa '0' para una sola curva.</p>
                 </div>
                 <!-- Límites de Integración -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="a" class="block text-sm font-medium text-gray-700">Límite Inferior (a)</label>
-                        <input type="number" id="a" value="1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="number" id="a" value="0" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                     <div>
                         <label for="b" class="block text-sm font-medium text-gray-700">Límite Superior (b)</label>
-                        <input type="number" id="b" value="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="number" id="b" value="1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                 </div>
                 <!-- Eje de Rotación -->
@@ -77,7 +77,7 @@
                         <option value="x">Eje X (y=0)</option>
                         <option value="y=k">Recta Horizontal (y=k)</option>
                         <option value="y">Eje Y (x=0)</option>
-                        <option value="x=h">Recta Vertical (x=h)</option>
+                        <option value="x=h" selected>Recta Vertical (x=h)</option>
                     </select>
                 </div>
             </div>
@@ -87,13 +87,13 @@
                      <label for="k_val" class="block text-sm font-medium text-gray-700">Valor de k</label>
                      <input type="number" id="k_val" value="-1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
                  </div>
-                 <div id="h-input-container" class="hidden">
+                 <div id="h-input-container">
                      <label for="h_val" class="block text-sm font-medium text-gray-700">Valor de h</label>
                      <input type="number" id="h_val" value="-1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
                  </div>
             </div>
             <!-- Mensaje de ayuda para rotación vertical -->
-            <p id="vertical-rotation-help" class="text-sm text-amber-700 bg-amber-100 p-3 rounded-md mt-4 hidden">
+            <p id="vertical-rotation-help" class="text-sm text-amber-700 bg-amber-100 p-3 rounded-md mt-4">
                 <strong>Atención:</strong> Para rotar sobre un eje vertical, las funciones deben estar en términos de y (ej. x = y^2) y los límites 'a' y 'b' corresponden al eje Y.
             </p>
              <!-- Botón de Generación -->
@@ -171,7 +171,7 @@
             const selected_axis = axis_select.value;
             k_input_container.classList.toggle('hidden', selected_axis !== 'y=k');
             h_input_container.classList.toggle('hidden', selected_axis !== 'x=h');
-            vertical_rotation_help.classList.toggle('hidden', selected_axis !== 'y' && selected_axis !== 'x=h');
+            vertical_rotation_help.classList.toggle('hidden', !['y', 'x=h'].includes(selected_axis));
         }
 
         // --- Función Principal de Generación ---
@@ -197,23 +197,28 @@
                     const h = (axis === 'x=h') ? parseFloat(h_val_input.value) : 0;
                     const is_vertical_rotation = (axis === 'y' || axis === 'x=h');
 
-                    if (isNaN(a) || isNaN(b) || a >= b) {
-                        showError("Límites 'a' y 'b' inválidos. Asegúrate que a < b.");
-                        return; // Detener ejecución si los límites son inválidos
+                    if (isNaN(a) || isNaN(b) || a > b) { // Permitir a=b para puntos
+                        showError("Límites 'a' y 'b' inválidos. Asegúrate que a <= b.");
+                        return;
                     }
 
-                    const f = math.compile(f_x_str);
-                    const g = math.compile(g_x_str);
+                    const makeSafeEval = (funcStr) => {
+                        const safeStr = funcStr.replace(/sqrt\(([^)]+)\)/g, 'sqrt(max(0, $1))');
+                        return math.compile(safeStr);
+                    };
+
+                    const f = makeSafeEval(f_x_str);
+                    const g = makeSafeEval(g_x_str);
                     
                     const test_var = is_vertical_rotation ? {y: a} : {x: a};
                     f.evaluate(test_var);
                     g.evaluate(test_var);
 
                     plot2D(f, g, a, b, axis, k, h);
-                    calculateAndDisplayVolume(f, g, a, b, axis, k, h);
+                    calculateAndDisplayVolume(f_x_str, g_x_str, f, g, a, b, axis, k, h);
 
                     let start = null;
-                    const duration = 8000; // Duración de la animación en milisegundos (8 segundos)
+                    const duration = 8000;
 
                     const step = (timestamp) => {
                         if (!start) start = timestamp;
@@ -265,36 +270,54 @@
         }
 
         function plot2D(f, g, a, b, axis, k, h) {
-            const steps = 100;
+            const steps = 200; 
             const traces = [];
             const is_vertical = (axis === 'y' || axis === 'x=h');
-            
+
+            const evaluate = (func, scope) => {
+                try {
+                    const val = func.evaluate(scope);
+                    return isNaN(val) || !isFinite(val) ? null : val;
+                } catch (e) { return null; }
+            };
+
             if (is_vertical) {
-                const y_vals = math.range(a, b, (b - a) / steps, true).toArray();
-                const x_vals_f = y_vals.map(y => f.evaluate({ y }));
-                const x_vals_g = y_vals.map(y => g.evaluate({ y }));
-                traces.push({ x: x_vals_f, y: y_vals, mode: 'lines', name: 'x=f(y)', line: { color: 'rgb(59, 130, 246)', width: 3 } });
-                traces.push({ x: x_vals_g, y: y_vals, mode: 'lines', name: 'x=g(y)', line: { color: 'rgb(239, 68, 68)', width: 3 } });
-                traces.push({ x: x_vals_f.concat(x_vals_g.slice().reverse()), y: y_vals.concat(y_vals.slice().reverse()), fill: 'toself', fillcolor: 'rgba(59, 130, 246, 0.2)', line: { color: 'transparent' }, showlegend: false });
+                const y_range = math.range(a, b, (b - a) / steps, true).toArray();
+                const x_vals_f = y_range.map(y => evaluate(f, { y }));
+                const x_vals_g = y_range.map(y => evaluate(g, { y }));
+
+                traces.push({ x: x_vals_f, y: y_range, mode: 'lines', name: 'x=f(y)', line: { color: 'rgb(59, 130, 246)', width: 3 }, connectgaps: false });
+                traces.push({ x: x_vals_g, y: y_range, mode: 'lines', name: 'x=g(y)', line: { color: 'rgb(239, 68, 68)', width: 3 }, connectgaps: false });
                 
-                // Dibuja el eje de revolución
+                const fill_x = x_vals_f.filter(v => v !== null).concat(x_vals_g.filter(v => v !== null).slice().reverse());
+                const fill_y = y_range.filter((v, i) => x_vals_f[i] !== null).concat(y_range.filter((v, i) => x_vals_g[i] !== null).slice().reverse());
+                traces.push({ x: fill_x, y: fill_y, fill: 'toself', fillcolor: 'rgba(59, 130, 246, 0.2)', line: { color: 'transparent' }, showlegend: false });
+                
                 const axis_x_val = (axis === 'y') ? 0 : h;
                 traces.push({ x: [axis_x_val, axis_x_val], y: [a, b], mode: 'lines', name: `Eje x=${axis_x_val}`, line: { color: 'orange', width: 2.5, dash: 'dash' } });
 
             } else {
-                const x_vals = math.range(a, b, (b - a) / steps, true).toArray();
-                const y_vals_f = x_vals.map(x => f.evaluate({ x }));
-                const y_vals_g = x_vals.map(x => g.evaluate({ x }));
-                traces.push({ x: x_vals, y: y_vals_f, mode: 'lines', name: 'y=f(x)', line: { color: 'rgb(59, 130, 246)', width: 3 } });
-                traces.push({ x: x_vals, y: y_vals_g, mode: 'lines', name: 'y=g(x)', line: { color: 'rgb(239, 68, 68)', width: 3 } });
-                traces.push({ x: x_vals.concat(x_vals.slice().reverse()), y: y_vals_f.concat(y_vals_g.slice().reverse()), fill: 'toself', fillcolor: 'rgba(59, 130, 246, 0.2)', line: { color: 'transparent' }, showlegend: false });
+                const x_range = math.range(a, b, (b - a) / steps, true).toArray();
+                const y_vals_f = x_range.map(x => evaluate(f, { x }));
+                const y_vals_g = x_range.map(x => evaluate(g, { x }));
+                
+                traces.push({ x: x_range, y: y_vals_f, mode: 'lines', name: 'y=f(x)', line: { color: 'rgb(59, 130, 246)', width: 3 }, connectgaps: false });
+                traces.push({ x: x_range, y: y_vals_g, mode: 'lines', name: 'y=g(x)', line: { color: 'rgb(239, 68, 68)', width: 3 }, connectgaps: false });
 
-                // Dibuja el eje de revolución
+                const fill_x = x_range.filter((v, i) => y_vals_f[i] !== null).concat(x_range.filter((v, i) => y_vals_g[i] !== null).slice().reverse());
+                const fill_y = y_vals_f.filter(v => v !== null).concat(y_vals_g.filter(v => v !== null).slice().reverse());
+                traces.push({ x: fill_x, y: fill_y, fill: 'toself', fillcolor: 'rgba(59, 130, 246, 0.2)', line: { color: 'transparent' }, showlegend: false });
+
                 const axis_y_val = (axis === 'x') ? 0 : k;
                 traces.push({ x: [a, b], y: [axis_y_val, axis_y_val], mode: 'lines', name: `Eje y=${axis_y_val}`, line: { color: 'orange', width: 2.5, dash: 'dash' } });
             }
             
-            const layout = { margin: { t: 20, r: 20, b: 40, l: 40 }, xaxis: { title: 'x' }, yaxis: { title: 'y', scaleanchor: "x", scaleratio: 1 }, legend: { x: 0.05, y: 0.95 } };
+            const layout = { 
+                margin: { t: 20, r: 20, b: 40, l: 40 }, 
+                xaxis: { title: 'x', range: is_vertical ? null : [a, b] }, 
+                yaxis: { title: 'y', scaleanchor: "x", scaleratio: 1, range: is_vertical ? [a, b] : null }, 
+                legend: { x: 0.05, y: 0.95 } 
+            };
             Plotly.newPlot(plot2d_div, traces, layout, {responsive: true});
         }
                 
@@ -314,26 +337,34 @@
                     for (let j = 0; j < theta_range.length; j++) {
                         const theta = theta_range[j];
                         let x, y, z;
+                        let r_val;
                         switch (axis) {
                             case 'y': case 'x=h':
-                                const r_vert = func.evaluate({ y: val }) - h;
-                                x = h + r_vert * Math.cos(theta);
-                                y = val;
-                                z = r_vert * Math.sin(theta);
+                                r_val = func.evaluate({ y: val });
+                                if (isNaN(r_val) || !isFinite(r_val)) { x = y = z = null; } 
+                                else {
+                                    const r_vert = r_val - h;
+                                    x = h + r_vert * Math.cos(theta);
+                                    y = val;
+                                    z = r_vert * Math.sin(theta);
+                                }
                                 break;
-                            case 'x': case 'y=k':
-                            default:
-                                const r_horiz = func.evaluate({ x: val }) - k;
-                                x = val;
-                                y = k + r_horiz * Math.cos(theta);
-                                z = r_horiz * Math.sin(theta);
+                            default: // 'x' or 'y=k'
+                                r_val = func.evaluate({ x: val });
+                                if (isNaN(r_val) || !isFinite(r_val)) { x = y = z = null; }
+                                else {
+                                    const r_horiz = r_val - k;
+                                    x = val;
+                                    y = k + r_horiz * Math.cos(theta);
+                                    z = r_horiz * Math.sin(theta);
+                                }
                                 break;
                         }
                         x_row.push(x); y_row.push(y); z_row.push(z);
                     }
                     x_surf.push(x_row); y_surf.push(y_row); z_surf.push(z_row);
                 }
-                return { x: x_surf, y: y_surf, z: z_surf, type: 'surface', colorscale: color, showscale: false, hoverinfo: 'none' };
+                return { x: x_surf, y: y_surf, z: z_surf, type: 'surface', colorscale: color, showscale: false, hoverinfo: 'none', connectgaps: false };
             }
             
             const data = [createSurface(f, 'Blues')];
@@ -341,7 +372,6 @@
                  data.push(createSurface(g, 'Reds'));
             }
 
-            // Dibuja el eje de revolución en 3D
             const is_vertical = (axis === 'y' || axis === 'x=h');
             let axis_trace_3d = {
                 type: 'scatter3d',
@@ -362,25 +392,27 @@
                 axis_trace_3d.z = [0, 0];
             }
             data.push(axis_trace_3d);
+            
+            const scene_layout = {
+                aspectmode: 'data',
+                camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } },
+                xaxis: { title: { text: 'x' }, range: is_vertical ? null : [a, b] },
+                yaxis: { title: { text: 'y' }, range: is_vertical ? [a, b] : null },
+                zaxis: { title: { text: 'z' } }
+            };
 
-            const layout = { showlegend: false, margin: { t: 0, r: 0, b: 0, l: 0 }, scene: { aspectmode: 'data', camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } } } };
+            const layout = { showlegend: false, margin: { t: 0, r: 0, b: 0, l: 0 }, scene: scene_layout };
             Plotly.newPlot(plot3d_div, data, layout, {responsive: true});
         }
         
-        function calculateAndDisplayVolume(f, g, a, b, axis, k, h) {
-            const n_steps = 1000;
+        function calculateAndDisplayVolume(f_str_raw, g_str_raw, f, g, a, b, axis, k, h) {
+            const n_steps = 2000; // Increased precision
             let volume = 0;
-            const f_str_raw = f_x_input.value;
-            const g_str_raw = g_x_input.value.trim();
             
             const toLatex = (str) => {
                 try {
-                    // Use math.js's built-in parser and LaTeX converter for maximum robustness
-                    const node = math.parse(str);
-                    return node.toTex();
+                    return math.parse(str).toTex();
                 } catch (e) {
-                    console.error("LaTeX conversion failed, falling back to simple display:", e);
-                    // Fallback for any unexpected parsing error, just display the raw string
                     return str.replace(/\*/g, ' ');
                 }
             };
@@ -388,7 +420,7 @@
             const f_str_latex = toLatex(f_str_raw);
             const g_str_latex = toLatex(g_str_raw);
             let integral_latex = '';
-            const is_disk_method = g_str_raw === '0' || g_str_raw === '';
+            const is_disk_method = g_str_raw.trim() === '0' || g_str_raw.trim() === '';
             
             function formatLatexExpr(func_str, offset_val) {
                 if (offset_val === 0) return func_str;
@@ -396,57 +428,86 @@
                 return `\\left(${func_str} - ${offset_val}\\right)`;
             }
 
-            switch(axis) {
-                case 'y': case 'x=h': {
-                    const dy = (b - a) / n_steps;
-                    for (let i = 0; i < n_steps; i++) {
-                        const y = a + i * dy;
-                        const R = f.evaluate({ y }) - h;
-                        const r = is_disk_method ? 0 : g.evaluate({ y }) - h;
+            // --- INICIO LÓGICA DE CÁLCULO Y DISPLAY CORREGIDA ---
+            let R_str, r_str, R_blue_str, r_red_str;
+            const mid = (a + b) / 2;
+
+            if (axis === 'y' || axis === 'x=h') {
+                const dy = (b - a) / n_steps;
+                for (let i = 0; i < n_steps; i++) {
+                    const y = a + i * dy;
+                    const val1 = f.evaluate({ y });
+                    const val2 = is_disk_method ? h : g.evaluate({ y });
+
+                    const R = Math.max(Math.abs(val1 - h), Math.abs(val2 - h));
+                    const r = Math.min(Math.abs(val1 - h), Math.abs(val2 - h));
+                    
+                    if (!isNaN(R) && !isNaN(r)) {
                         volume += Math.PI * (Math.pow(R, 2) - Math.pow(r, 2)) * dy;
                     }
-                    const R_expr = formatLatexExpr(f_str_latex, h);
-                    if (is_disk_method) {
-                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_expr}} \\right)^2 dy`;
-                    } else {
-                        const r_expr = formatLatexExpr(g_str_latex, h);
-                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${R_expr}} \\right)^2 - \\left( \\red{${r_expr}} \\right)^2 \\right] dy`;
-                    }
-                    break;
                 }
-                case 'x': case 'y=k':
-                default: {
-                    const dx = (b - a) / n_steps;
-                    for (let i = 0; i < n_steps; i++) {
-                        const x = a + i * dx;
-                        const R = f.evaluate({ x }) - k;
-                        const r = is_disk_method ? 0 : g.evaluate({ x }) - k;
+                
+                // Determinar R y r para la fórmula LaTeX
+                const val1_mid = f.evaluate({y: mid});
+                const val2_mid = is_disk_method ? h : g.evaluate({y: mid});
+                if (Math.abs(val1_mid - h) >= Math.abs(val2_mid - h)) {
+                    R_str = formatLatexExpr(f_str_latex, h);
+                    r_str = is_disk_method ? '0' : formatLatexExpr(g_str_latex, h);
+                    [R_blue_str, r_red_str] = [f_str_latex, g_str_latex];
+                } else {
+                    R_str = formatLatexExpr(g_str_latex, h);
+                    r_str = formatLatexExpr(f_str_latex, h);
+                    [R_blue_str, r_red_str] = [g_str_latex, f_str_latex];
+                }
+
+                if (is_disk_method) {
+                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_str}} \\right)^2 dy`;
+                } else {
+                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${formatLatexExpr(R_blue_str, h)}} \\right)^2 - \\left( \\red{${formatLatexExpr(r_red_str, h)}} \\right)^2 \\right] dy`;
+                }
+
+            } else { // axis 'x' or 'y=k'
+                const dx = (b - a) / n_steps;
+                for (let i = 0; i < n_steps; i++) {
+                    const x = a + i * dx;
+                    const val1 = f.evaluate({ x });
+                    const val2 = is_disk_method ? k : g.evaluate({ x });
+                    
+                    const R = Math.max(Math.abs(val1 - k), Math.abs(val2 - k));
+                    const r = Math.min(Math.abs(val1 - k), Math.abs(val2 - k));
+
+                    if (!isNaN(R) && !isNaN(r)) {
                         volume += Math.PI * (Math.pow(R, 2) - Math.pow(r, 2)) * dx;
                     }
-                    const R_expr = formatLatexExpr(f_str_latex, k);
-                    if (is_disk_method) {
-                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_expr}} \\right)^2 dx`;
-                    } else {
-                        const r_expr = formatLatexExpr(g_str_latex, k);
-                        integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${R_expr}} \\right)^2 - \\left( \\red{${r_expr}} \\right)^2 \\right] dx`;
-                    }
-                    break;
+                }
+
+                const val1_mid = f.evaluate({x: mid});
+                const val2_mid = is_disk_method ? k : g.evaluate({x: mid});
+                if (Math.abs(val1_mid - k) >= Math.abs(val2_mid - k)) {
+                     [R_blue_str, r_red_str] = [f_str_latex, g_str_latex];
+                } else {
+                     [R_blue_str, r_red_str] = [g_str_latex, f_str_latex];
+                }
+
+                if (is_disk_method) {
+                     const R_expr = formatLatexExpr(f_str_latex, k);
+                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_expr}} \\right)^2 dx`;
+                } else {
+                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${formatLatexExpr(R_blue_str, k)}} \\right)^2 - \\left( \\red{${formatLatexExpr(r_red_str, k)}} \\right)^2 \\right] dx`;
                 }
             }
-            
-            // --- Manejo de Errores de Dominio (NaN) ---
+            // --- FIN LÓGICA CORREGIDA ---
+
             if (isNaN(volume)) {
                 volume_display_div.innerHTML = `<span class="text-2xl text-red-600">Error de Dominio</span>`;
-                integral_display_div.innerHTML = `<span class="text-sm text-red-600">La función no es real en el intervalo (ej. raíz de un negativo).</span>`;
+                integral_display_div.innerHTML = `<span class="text-sm text-red-600">La función no es real en el intervalo.</span>`;
                 return;
             }
 
             volume_display_div.textContent = Math.abs(volume).toFixed(4) + ' u³';
             integral_display_div.innerHTML = `$${integral_latex}$`;
             if (window.MathJax) {
-                 MathJax.typesetPromise().catch(function (err) {
-                    console.error('MathJax error: ', err);
-                 });
+                 MathJax.typesetPromise().catch((err) => console.error('MathJax error: ', err));
             }
         }
         
