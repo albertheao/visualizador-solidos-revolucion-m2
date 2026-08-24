@@ -71,23 +71,23 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Función Externa -->
                 <div>
-                    <label for="f_x" class="block text-sm font-semibold text-blue-600">Función 1: <span class="font-mono text-gray-700 font-medium">y=f(x) o x=f(y)</span></label>
+                    <label for="f_x" class="block text-sm font-semibold text-blue-600">Función 1: <span class="text-gray-700 font-medium">\(y=f(x)\) o \(x=f(y)\)</span></label>
                     <input type="text" id="f_x" value="sqrt(y)" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <!-- Función Interna -->
                 <div>
-                    <label for="g_x" class="block text-sm font-semibold text-red-600">Función 2: <span class="font-mono text-gray-700 font-medium">y=g(x) o x=g(y)</span></label>
+                    <label for="g_x" class="block text-sm font-semibold text-red-600">Función 2: <span class="text-gray-700 font-medium">\(y=g(x)\) o \(x=g(y)\)</span></label>
                     <input type="text" id="g_x" value="y" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     <p class="text-xs text-gray-500 mt-1">Usa '0' para una sola curva.</p>
                 </div>
                 <!-- Límites de Integración -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="a" class="block text-sm font-medium text-gray-700">Límite Inferior (a)</label>
+                        <label for="a" class="block text-sm font-medium text-gray-700">Límite inferior \(a\)</label>
                         <input type="number" id="a" value="0" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                     <div>
-                        <label for="b" class="block text-sm font-medium text-gray-700">Límite Superior (b)</label>
+                        <label for="b" class="block text-sm font-medium text-gray-700">Límite superior \(b\)</label>
                         <input type="number" id="b" value="1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                 </div>
@@ -95,10 +95,10 @@
                 <div>
                     <label for="axis" class="block text-sm font-semibold text-orange-600">Eje de Rotación</label>
                     <select id="axis" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                        <option value="x">Eje X (y=0)</option>
-                        <option value="y=k">Recta Horizontal (y=k)</option>
-                        <option value="y">Eje Y (x=0)</option>
-                        <option value="x=h" selected>Recta Vertical (x=h)</option>
+                        <option value="x">Eje X (y = 0)</option>
+                        <option value="y=k">Recta horizontal (y = k)</option>
+                        <option value="y">Eje Y (x = 0)</option>
+                        <option value="x=h" selected>Recta vertical (x = h)</option>
                     </select>
                 </div>
             </div>
@@ -115,7 +115,7 @@
             </div>
             <!-- Mensaje de ayuda para rotación vertical -->
             <p id="vertical-rotation-help" class="text-sm text-amber-700 bg-amber-100 p-3 rounded-md mt-4">
-                <strong>Atención:</strong> Para rotar sobre un eje vertical, las funciones deben estar en términos de y (ej. x = y^2) y los límites 'a' y 'b' corresponden al eje Y.
+                <strong>Atención:</strong> Para rotar sobre un eje vertical, las funciones deben estar en términos de \(y\) (por ejemplo, \(x=y^2\)) y los límites \(a\) y \(b\) corresponden al eje \(Y\).
             </p>
              <!-- Botón de Generación -->
              <div class="mt-6 pt-6 border-t border-gray-200">
