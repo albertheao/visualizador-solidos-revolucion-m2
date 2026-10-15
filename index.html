@@ -90,6 +90,12 @@
         .method-option label span { display:block; margin-top:.15rem; color:var(--dma-muted); font-size:.75rem; line-height:1.35; }
         .method-option input:checked + label { border-color:var(--dma-blue); background:#edf7fa; box-shadow:0 0 0 2px rgba(11,99,128,.12); }
         .method-option input:focus-visible + label { outline:3px solid rgba(214,165,42,.38); outline-offset:2px; }
+        .axis-controls { display:flex; align-items:center; gap:.55rem; margin-top:.25rem; }
+        .axis-controls select { flex:1 1 auto; min-width:0; margin-top:0 !important; }
+        .axis-value { flex:0 0 auto; display:flex; align-items:center; gap:.35rem; }
+        .axis-value.hidden { display:none; }
+        .axis-value label { color:var(--dma-ink); font-size:.85rem; font-weight:700; white-space:nowrap; }
+        .axis-value input { width:5.25rem; padding:.48rem .55rem; border:1px solid #d1d5db; border-radius:7px; background:#fff; color:var(--dma-ink); box-shadow:0 1px 2px rgba(18,50,74,.06); }
         .legend-row { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:.35rem 0 0; color:var(--dma-muted); font-size:.72rem; }
         .legend-row span { display:inline-flex; align-items:center; gap:.35rem; }
         .legend-dot { width:.7rem; height:.7rem; border-radius:3px; }
@@ -124,7 +130,7 @@
                     </div>
                 </div>
             </fieldset>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <!-- Función Externa -->
                 <div>
                     <label id="f-label" for="f_x" class="block text-sm font-semibold text-blue-600">Frontera exterior</label>
@@ -147,14 +153,24 @@
                     </div>
                 </div>
                 <!-- Eje de Rotación -->
-                <div>
+                <div class="md:col-span-2 lg:col-span-2">
                     <label for="axis" class="block text-sm font-semibold text-orange-600">Eje de rotación</label>
-                    <select id="axis" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                        <option value="x" selected>Eje x (y = 0)</option>
-                        <option value="y=k">Recta horizontal (y = k)</option>
-                        <option value="y">Eje y (x = 0)</option>
-                        <option value="x=h">Recta vertical (x = h)</option>
-                    </select>
+                    <div class="axis-controls">
+                        <select id="axis" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="x" selected>Eje x (y = 0)</option>
+                            <option value="y=k">Recta horizontal (y = k)</option>
+                            <option value="y">Eje y (x = 0)</option>
+                            <option value="x=h">Recta vertical (x = h)</option>
+                        </select>
+                        <div id="k-input-container" class="axis-value hidden">
+                            <label for="k_val">k =</label>
+                            <input type="number" id="k_val" value="-1" aria-label="Valor de k">
+                        </div>
+                        <div id="h-input-container" class="axis-value hidden">
+                            <label for="h_val">h =</label>
+                            <input type="number" id="h_val" value="-1" aria-label="Valor de h">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="math-keypad" aria-label="Teclado matemático">
@@ -183,17 +199,6 @@
                     <button type="button" class="math-key" data-template="\div">÷</button>
                 </div>
                 <p class="control-help mt-2">Selecciona primero el campo que deseas editar. Cada expresión se construye directamente con notación matemática.</p>
-            </div>
-             <!-- Inputs para rectas personalizadas (ocultos por defecto) -->
-            <div id="custom-axis-inputs" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                 <div id="k-input-container" class="hidden">
-                     <label for="k_val" class="block text-sm font-medium text-gray-700">Valor de k</label>
-                     <input type="number" id="k_val" value="-1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
-                 </div>
-                 <div id="h-input-container">
-                     <label for="h_val" class="block text-sm font-medium text-gray-700">Valor de h</label>
-                     <input type="number" id="h_val" value="-1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
-                 </div>
             </div>
             <!-- Mensaje de ayuda para rotación vertical -->
             <p id="vertical-rotation-help" class="text-sm text-amber-700 bg-amber-100 p-3 rounded-md mt-4">
@@ -412,14 +417,26 @@
             activeMathInput.insert(template,{focus:true,selectionMode:'placeholder'});
         }
 
+        function clearPlot(container){
+            // Plotly guarda estado directamente en el contenedor. Vaciar solo el
+            // HTML deja referencias de la gráfica anterior y puede impedir que
+            // una visualización posterior aparezca hasta recargar la página.
+            if(typeof Plotly!=='undefined'){
+                try{Plotly.purge(container);}catch(error){console.warn('No fue posible limpiar la gráfica anterior.',error);}
+            }
+            container.replaceChildren();
+        }
+
         // --- Función Principal de Generación ---
         function handleGenerateClick() {
             input_error.classList.remove('show'); input_error.textContent='';
             if(!mathEditorReady){showError('El editor matemático todavía se está cargando. Intenta nuevamente en un momento.');return;}
             generate_btn.disabled = true;
             generate_btn_text.textContent = 'Generando...';
-            plot2d_div.innerHTML = '';
-            plot3d_div.innerHTML = '';
+            if(rotationFrame){cancelAnimationFrame(rotationFrame);rotationFrame=null;}
+            currentModel=null;
+            clearPlot(plot2d_div);
+            clearPlot(plot3d_div);
             visuals_container.classList.remove('hidden');
 
             setTimeout(() => {
@@ -506,8 +523,9 @@
 
         function showError(message) {
              input_error.innerHTML=message;input_error.classList.add('show');
+             clearPlot(plot2d_div);
+             clearPlot(plot3d_div);
              plot2d_div.innerHTML = `<div class="w-full h-full flex items-center justify-center text-red-600 p-4 text-center">${message}</div>`;
-             plot3d_div.innerHTML = '';
              integral_display_div.textContent = '';
              volume_display_div.textContent = '--';
              generate_btn.disabled=false;generate_btn_text.textContent='Visualizar sólido';
