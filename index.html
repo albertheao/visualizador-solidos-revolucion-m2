@@ -81,7 +81,6 @@
         .rotation-control { margin-top:1rem; padding:.85rem 1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
         .rotation-control label { display:flex; justify-content:space-between; gap:1rem; color:var(--dma-muted); font-size:.82rem; font-weight:700; }
         .rotation-control input { width:100%; accent-color:var(--dma-gold); }
-        .method-note { margin-top:1rem; padding:.8rem 1rem; border-left:4px solid var(--dma-violet); border-radius:8px; background:#f7f4fc; color:var(--dma-ink); font-size:.85rem; line-height:1.55; }
         .method-selector { margin-bottom:1.35rem; padding:1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
         .method-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; margin-top:.55rem; }
         .method-option { position:relative; }
@@ -232,7 +231,6 @@
                         <input id="rotation-angle" type="range" min="0" max="360" step="5" value="0">
                     </div>
                 </div>
-                <div id="method-note" class="method-note"></div>
             </div>
             
             <!-- Resultados (Ocultos por defecto) -->
@@ -287,7 +285,6 @@
         const input_error = document.getElementById('input-error');
         const rotation_angle = document.getElementById('rotation-angle');
         const rotation_value = document.getElementById('rotation-value');
-        const method_note = document.getElementById('method-note');
         let currentModel = null;
         let rotationFrame = null;
         let activeMathInput = f_x_input;
@@ -513,8 +510,6 @@
              plot3d_div.innerHTML = '';
              integral_display_div.textContent = '';
              volume_display_div.textContent = '--';
-             method_note.textContent='';
-             method_note.classList.add('hidden');
              generate_btn.disabled=false;generate_btn_text.textContent='Visualizar sólido';
         }
 
@@ -693,7 +688,6 @@
         function calculateAndDisplayVolume(f_str_raw, g_str_raw, a_str_raw, b_str_raw, f, g, a, b, axis, k, h, is_disk_method) {
             const n_steps = 2000; // Increased precision
             let volume = 0;
-            let crossesAxis=false,outerSwitches=false,firstOuter=null;
             
             const toLatex = (str) => {
                 try {
@@ -710,9 +704,6 @@
             let integral_latex = '';
             function sectionRadii(value1,value2,axisValue){
                 const d1=value1-axisValue,d2=value2-axisValue;
-                const outer=Math.abs(d1)>=Math.abs(d2)?'f':'g';
-                if(firstOuter===null)firstOuter=outer;else if(firstOuter!==outer)outerSwitches=true;
-                if(d1*d2<=0)crossesAxis=true;
                 return {R:Math.max(Math.abs(d1),Math.abs(d2)),r:d1*d2<=0?0:Math.min(Math.abs(d1),Math.abs(d2))};
             }
             
@@ -783,15 +774,8 @@
             // --- FIN LÓGICA CORREGIDA ---
 
             const variable=(axis==='y'||axis==='x=h')?'y':'x';
-            const axisValue=(axis==='y'||axis==='x=h')?h:k;
             if(!is_disk_method){
-                method_note.classList.remove('hidden');
-                const df=`\\left|${formatLatexExpr(f_str_latex,axisValue)}\\right|`,dg=`\\left|${formatLatexExpr(g_str_latex,axisValue)}\\right|`;
                 integral_latex=`V=\\pi\\int_{${a_str_latex}}^{${b_str_latex}}\\left[R(${variable})^2-r(${variable})^2\\right]\\,d${variable}`;
-                method_note.innerHTML=`<strong>Radios usados:</strong> \\(R(${variable})=\\max\\{${df},${dg}\\}\\). ${crossesAxis?`Como la región atraviesa el eje en parte del intervalo, allí \\(r(${variable})=0\\).`:`El radio interior es la menor de esas dos distancias.`}${outerSwitches?' Las curvas intercambian cuál determina el radio exterior, por lo que no se fuerza una sola fórmula simplificada.':''}`;
-            }else{
-                method_note.textContent='';
-                method_note.classList.add('hidden');
             }
 
             if (!Number.isFinite(volume)) {
@@ -804,7 +788,7 @@
             volume_display_div.textContent = cleanVolume.toFixed(4) + ' u³';
             integral_display_div.innerHTML = `$${integral_latex}$`;
             if (window.MathJax) {
-                 MathJax.typesetPromise([integral_display_div,method_note]).catch((err) => console.error('MathJax error: ', err));
+                 MathJax.typesetPromise([integral_display_div]).catch((err) => console.error('MathJax error: ', err));
             }
         }
         
