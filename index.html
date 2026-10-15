@@ -10,16 +10,12 @@
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     <!-- Math.js para parsear las funciones matemáticas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.js"></script>
+    <!-- MathLive para construir expresiones matemáticas de forma visual -->
+    <script defer src="https://cdn.jsdelivr.net/npm/mathlive@0.111.0"></script>
     <!-- MathJax para renderizar la integral con formato matemático -->
     <script>
         MathJax = {
-          tex: {
-            inlineMath: [['$', '$'], ['\\(', '\\)']],
-            macros: {
-              blue: ['{\\color{blue}{#1}}', 1],
-              red: ['{\\color{red}{#1}}', 1]
-            }
-          },
+          tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
           svg: {
             fontCache: 'global'
           }
@@ -37,6 +33,9 @@
             --dma-turquoise: #008c95;
             --dma-orange: #e06b16;
             --dma-violet: #7357b8;
+            --dma-muted: #526b79;
+            --dma-border: #d7e2e7;
+            --dma-red: #b42318;
         }
         body {
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -53,7 +52,7 @@
         .bg-white { border:1px solid #d7e2e7; border-radius:14px !important; box-shadow:0 8px 24px rgba(18,50,74,.07) !important; }
         #generate-btn { background:var(--dma-turquoise) !important; }
         #generate-btn:hover { background:var(--dma-navy) !important; }
-        input:focus, select:focus, button:focus-visible { outline:3px solid rgba(214,165,42,.38) !important; outline-offset:2px; }
+        input:focus, select:focus, button:focus-visible, math-field:focus-within { outline:3px solid rgba(214,165,42,.38) !important; outline-offset:2px; }
         .dma-footer { border-top:1px solid #cbd9df; padding-top:1.25rem; color:#526b79; }
         .dma-footer strong { color:var(--dma-navy); }
         .dma-footer a { color:var(--dma-blue); text-decoration:underline; text-underline-offset:3px; }
@@ -62,7 +61,43 @@
         label.text-orange-600 { color:var(--dma-violet) !important; }
         #volume-display { color:#8a6508 !important; }
         .bg-white:has(#volume-display) { border-top:4px solid var(--dma-gold); background:#fffaf0 !important; }
-        @media (max-width:640px) { .plot-container { height:360px; } }
+        .control-help { color:var(--dma-muted); font-size:.76rem; line-height:1.45; }
+        math-field.math-input { display:block; width:100%; min-height:2.75rem; margin-top:.25rem; padding:.48rem .7rem; border:1px solid #d1d5db; border-radius:7px; background:#fff; color:var(--dma-ink); font-size:1.05rem; box-shadow:0 1px 2px rgba(18,50,74,.06); --caret-color:var(--dma-blue); --selection-background-color:rgba(0,140,149,.18); }
+        math-field.math-input::part(menu-toggle), math-field.math-input::part(virtual-keyboard-toggle) { display:none; }
+        math-field.math-input.endpoint-input { min-width:0; text-align:center; }
+        .math-keypad { margin-top:1.1rem; padding:.8rem .9rem; border:1px solid var(--dma-border); border-radius:11px; background:#f8fbfc; }
+        .keypad-heading { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.35rem 1rem; margin-bottom:.6rem; }
+        .keypad-heading strong { color:var(--dma-navy); font-size:.84rem; }
+        #keypad-target { color:var(--dma-muted); font-size:.74rem; }
+        .keypad-buttons { display:flex; flex-wrap:wrap; gap:.4rem; }
+        .math-key { min-width:2.5rem; padding:.42rem .58rem; border:1px solid #c9d8df; border-radius:8px; background:#fff; color:var(--dma-ink); font-size:.82rem; font-weight:700; box-shadow:0 1px 2px rgba(18,50,74,.06); }
+        .math-key:hover { border-color:var(--dma-blue); background:#edf7fa; }
+        .math-key:disabled { opacity:.38; cursor:not-allowed; background:#eef2f4; }
+        .example-button { border:1px solid var(--dma-border); border-radius:9px; background:#f6fafb; color:var(--dma-ink); padding:.45rem .7rem; font-size:.76rem; font-weight:650; }
+        .example-button:hover { border-color:var(--dma-blue); background:#edf7fa; }
+        .reset-button { border-color:#c8a74e; color:#76570a; background:#fffaf0; }
+        .status-box { display:none; margin-top:1rem; padding:.75rem .9rem; border:1px solid #f1b5af; border-radius:9px; background:#fff1f0; color:var(--dma-red); font-size:.85rem; line-height:1.45; }
+        .status-box.show { display:block; }
+        .rotation-control { margin-top:1rem; padding:.85rem 1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
+        .rotation-control label { display:flex; justify-content:space-between; gap:1rem; color:var(--dma-muted); font-size:.82rem; font-weight:700; }
+        .rotation-control input { width:100%; accent-color:var(--dma-gold); }
+        .method-note { margin-top:1rem; padding:.8rem 1rem; border-left:4px solid var(--dma-violet); border-radius:8px; background:#f7f4fc; color:var(--dma-ink); font-size:.85rem; line-height:1.55; }
+        .method-selector { margin-bottom:1.35rem; padding:1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
+        .method-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; margin-top:.55rem; }
+        .method-option { position:relative; }
+        .method-option input { position:absolute; opacity:0; pointer-events:none; }
+        .method-option label { display:block; height:100%; padding:.75rem .9rem; border:2px solid var(--dma-border); border-radius:10px; background:#fff; color:var(--dma-ink); cursor:pointer; transition:.15s ease; }
+        .method-option label strong { display:block; color:var(--dma-navy); }
+        .method-option label span { display:block; margin-top:.15rem; color:var(--dma-muted); font-size:.75rem; line-height:1.35; }
+        .method-option input:checked + label { border-color:var(--dma-blue); background:#edf7fa; box-shadow:0 0 0 2px rgba(11,99,128,.12); }
+        .method-option input:focus-visible + label { outline:3px solid rgba(214,165,42,.38); outline-offset:2px; }
+        .legend-row { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:.35rem 0 0; color:var(--dma-muted); font-size:.72rem; }
+        .legend-row span { display:inline-flex; align-items:center; gap:.35rem; }
+        .legend-dot { width:.7rem; height:.7rem; border-radius:3px; }
+        .legend-f { background:var(--dma-strong-blue); }.legend-g { background:var(--dma-orange); }.legend-region { background:var(--dma-turquoise); }.legend-axis { background:var(--dma-violet); }
+        mjx-container[jax="SVG"]:not([display="true"]){display:inline-block !important;margin:0 .08em !important}
+        mjx-container[jax="SVG"]:not([display="true"]) svg{display:inline !important;vertical-align:middle}
+        @media (max-width:640px) { .plot-container { height:380px; } body > .container{padding:22px 12px !important}.dma-header{margin-bottom:1.25rem !important}.method-options{grid-template-columns:1fr} }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -70,46 +105,84 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="dma-header mb-8">
             <p class="dma-kicker">Universidad Galileo · Departamento de Matemática Aplicada</p>
-            <h1 class="text-4xl font-bold text-gray-900">Visualizador de Sólidos de Revolución</h1>
-            <p class="text-lg text-gray-600 mt-2">Explora el método de discos y arandelas de forma interactiva.</p>
+            <h1 class="text-4xl font-bold text-gray-900">Sólidos de revolución: discos y arandelas</h1>
+            <p class="text-base text-gray-600 mt-2 max-w-3xl">Define una región plana, selecciona el eje de rotación y observa cómo sus secciones perpendiculares generan discos o arandelas. El volumen se aproxima numéricamente mediante \(V=\pi\int_a^b(R^2-r^2)\,dt\).</p>
         </header>
 
         <!-- Panel de Controles -->
         <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
             <h2 class="text-2xl font-semibold mb-4 border-b pb-2">Controles</h2>
+            <fieldset class="method-selector">
+                <legend class="text-sm font-bold text-gray-700">Método de secciones</legend>
+                <div class="method-options">
+                    <div class="method-option">
+                        <input type="radio" id="method-disk" name="section-method" value="disk" checked>
+                        <label for="method-disk"><strong>Discos</strong><span>La región llega hasta el eje de rotación; el radio interior es cero.</span></label>
+                    </div>
+                    <div class="method-option">
+                        <input type="radio" id="method-washer" name="section-method" value="washer">
+                        <label for="method-washer"><strong>Arandelas</strong><span>La región está delimitada por dos fronteras y puede formar un agujero central.</span></label>
+                    </div>
+                </div>
+            </fieldset>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- Función Externa -->
                 <div>
-                    <label for="f_x" class="block text-sm font-semibold text-blue-600">Función 1: <span class="text-gray-700 font-medium">\(y=f(x)\) o \(x=f(y)\)</span></label>
-                    <input type="text" id="f_x" value="sqrt(y)" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <label id="f-label" for="f_x" class="block text-sm font-semibold text-blue-600">Primera frontera</label>
+                    <math-field id="f_x" class="math-input" aria-label="Primera frontera" math-virtual-keyboard-policy="manual" placeholder="Ingrese la función"></math-field>
                 </div>
                 <!-- Función Interna -->
-                <div>
-                    <label for="g_x" class="block text-sm font-semibold text-red-600">Función 2: <span class="text-gray-700 font-medium">\(y=g(x)\) o \(x=g(y)\)</span></label>
-                    <input type="text" id="g_x" value="y" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <p class="text-xs text-gray-500 mt-1">Usa '0' para una sola curva.</p>
+                <div id="second-function-container">
+                    <label for="g_x" class="block text-sm font-semibold text-red-600">Segunda frontera</label>
+                    <math-field id="g_x" class="math-input" aria-label="Segunda frontera" math-virtual-keyboard-policy="manual" placeholder="Ingrese la función"></math-field>
                 </div>
                 <!-- Límites de Integración -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="a" class="block text-sm font-medium text-gray-700">Límite inferior \(a\)</label>
-                        <input type="number" id="a" value="0" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <label for="a" class="block text-sm font-medium text-gray-700">\(a\)</label>
+                        <math-field id="a" class="math-input endpoint-input" aria-label="Extremo a" math-virtual-keyboard-policy="manual" placeholder="a"></math-field>
                     </div>
                     <div>
-                        <label for="b" class="block text-sm font-medium text-gray-700">Límite superior \(b\)</label>
-                        <input type="number" id="b" value="1" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <label for="b" class="block text-sm font-medium text-gray-700">\(b\)</label>
+                        <math-field id="b" class="math-input endpoint-input" aria-label="Extremo b" math-virtual-keyboard-policy="manual" placeholder="b"></math-field>
                     </div>
                 </div>
                 <!-- Eje de Rotación -->
                 <div>
-                    <label for="axis" class="block text-sm font-semibold text-orange-600">Eje de Rotación</label>
+                    <label for="axis" class="block text-sm font-semibold text-orange-600">Eje de rotación</label>
                     <select id="axis" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                        <option value="x">Eje X (y = 0)</option>
+                        <option value="x" selected>Eje X (y = 0)</option>
                         <option value="y=k">Recta horizontal (y = k)</option>
                         <option value="y">Eje Y (x = 0)</option>
-                        <option value="x=h" selected>Recta vertical (x = h)</option>
+                        <option value="x=h">Recta vertical (x = h)</option>
                     </select>
                 </div>
+            </div>
+            <div class="math-keypad" aria-label="Teclado matemático">
+                <div class="keypad-heading"><strong>Teclado matemático</strong><span id="keypad-target">Insertando en: Primera frontera</span></div>
+                <div class="keypad-buttons">
+                    <button type="button" class="math-key" data-template="\sqrt{#0}">\(\sqrt{\Box}\)</button>
+                    <button type="button" class="math-key" data-template="\sqrt[#?]{#@}">\(\sqrt[n]{\Box}\)</button>
+                    <button type="button" class="math-key" data-template="\frac{#@}{#?}">\(\frac{\Box}{\Box}\)</button>
+                    <button type="button" class="math-key" data-template="#@^{#?}">\(x^n\)</button>
+                    <button type="button" class="math-key" data-template="\sin\left(#0\right)">\(\sin\)</button>
+                    <button type="button" class="math-key" data-template="\cos\left(#0\right)">\(\cos\)</button>
+                    <button type="button" class="math-key" data-template="\tan\left(#0\right)">\(\tan\)</button>
+                    <button type="button" class="math-key" data-template="\log\left(#0\right)">\(\log\)</button>
+                    <button type="button" class="math-key" data-template="e^{#0}">\(e^x\)</button>
+                    <button type="button" class="math-key" data-template="\left|#0\right|">\(|x|\)</button>
+                    <button type="button" class="math-key" data-template="\pi">\(\pi\)</button>
+                    <button type="button" class="math-key" data-template="e">\(e\)</button>
+                    <button type="button" class="math-key variable-key" data-template="x">\(x\)</button>
+                    <button type="button" class="math-key variable-key" data-template="y">\(y\)</button>
+                    <button type="button" class="math-key" data-template="(">(</button>
+                    <button type="button" class="math-key" data-template=")">)</button>
+                    <button type="button" class="math-key" data-template="+">+</button>
+                    <button type="button" class="math-key" data-template="-">−</button>
+                    <button type="button" class="math-key" data-template="\cdot">×</button>
+                    <button type="button" class="math-key" data-template="\div">÷</button>
+                </div>
+                <p class="control-help mt-2">Selecciona primero el campo que deseas editar. Cada expresión se construye directamente con notación matemática.</p>
             </div>
              <!-- Inputs para rectas personalizadas (ocultos por defecto) -->
             <div id="custom-axis-inputs" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -126,6 +199,10 @@
             <p id="vertical-rotation-help" class="text-sm text-amber-700 bg-amber-100 p-3 rounded-md mt-4">
                 <strong>Atención:</strong> Para rotar sobre un eje vertical, las funciones deben estar en términos de \(y\) (por ejemplo, \(x=y^2\)) y los límites \(a\) y \(b\) corresponden al eje \(Y\).
             </p>
+            <div class="mt-4 flex justify-end">
+                <button type="button" id="reset-btn" class="example-button reset-button">Restablecer</button>
+            </div>
+            <div id="input-error" class="status-box" role="alert" aria-live="assertive"></div>
              <!-- Botón de Generación -->
              <div class="mt-6 pt-6 border-t border-gray-200">
                 <button id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
@@ -133,7 +210,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <span id="generate-btn-text">Generar Sólido</span>
+                    <span id="generate-btn-text">Visualizar sólido</span>
                 </button>
             </div>
         </div>
@@ -144,11 +221,17 @@
                 <div class="bg-white p-4 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold text-center mb-2">Región Plana (2D)</h3>
                     <div id="plot2d" class="plot-container"></div>
+                    <div class="legend-row" aria-label="Leyenda"><span><i class="legend-dot legend-f"></i>Primera frontera</span><span id="second-legend-item"><i class="legend-dot legend-g"></i>Segunda frontera</span><span><i class="legend-dot legend-region"></i>Región</span><span><i class="legend-dot legend-axis"></i>Eje de rotación</span></div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold text-center mb-2">Sólido de Revolución (3D)</h3>
                     <div id="plot3d" class="plot-container"></div>
+                    <div class="rotation-control">
+                        <label for="rotation-angle"><span>Ángulo de giro</span><strong><span id="rotation-value">0</span>°</strong></label>
+                        <input id="rotation-angle" type="range" min="0" max="360" step="5" value="0">
+                    </div>
                 </div>
+                <div id="method-note" class="method-note"></div>
             </div>
             
             <!-- Resultados (Ocultos por defecto) -->
@@ -160,7 +243,7 @@
                         <div id="integral-display" class="text-2xl mt-2 p-4"></div>
                     </div>
                     <div class="mt-6 md:mt-0">
-                        <h3 class="text-lg font-medium text-gray-600">Volumen del Sólido</h3>
+                        <h3 class="text-lg font-medium text-gray-600">Volumen aproximado</h3>
                         <p id="volume-display" class="text-4xl font-bold text-indigo-600 mt-2">--</p>
                     </div>
                 </div>
@@ -179,8 +262,13 @@
         // --- Referencias a Elementos del DOM ---
         const f_x_input = document.getElementById('f_x');
         const g_x_input = document.getElementById('g_x');
+        const method_inputs = document.querySelectorAll('input[name="section-method"]');
+        const second_function_container = document.getElementById('second-function-container');
+        const second_legend_item = document.getElementById('second-legend-item');
+        const f_label = document.getElementById('f-label');
         const a_input = document.getElementById('a');
         const b_input = document.getElementById('b');
+        const keypad_target = document.getElementById('keypad-target');
         const axis_select = document.getElementById('axis');
         const k_input_container = document.getElementById('k-input-container');
         const h_input_container = document.getElementById('h-input-container');
@@ -194,23 +282,134 @@
         const plot3d_div = document.getElementById('plot3d');
         const integral_display_div = document.getElementById('integral-display');
         const volume_display_div = document.getElementById('volume-display');
-        
-        let animationFrameId = null;
+        const input_error = document.getElementById('input-error');
+        const rotation_angle = document.getElementById('rotation-angle');
+        const rotation_value = document.getElementById('rotation-value');
+        const method_note = document.getElementById('method-note');
+        let currentModel = null;
+        let rotationFrame = null;
+        let activeMathInput = f_x_input;
+        let mathEditorReady = false;
+        const allowedSymbols=new Set(['x','y','pi','e','sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','sqrt','nthRoot','abs','exp','log','ln','min','max']);
+        function expressionToLatex(tree){
+            return tree.toTex({handler:(node,options)=>{
+                if(node.isFunctionNode&&node.fn?.name==='nthRoot'&&node.args.length===2){
+                    return `\\sqrt[${node.args[1].toTex(options)}]{${node.args[0].toTex(options)}}`;
+                }
+            }});
+        }
+        function parseSafeExpression(source){
+            const raw=source.trim();
+            if(!raw)throw new Error('Escribe una función válida.');
+            if(/\b(sen|seno|tg|raiz|raíz|logaritmo)\b/i.test(raw))throw new Error('Usa los botones del teclado matemático para insertar funciones y raíces.');
+            if(!/^[0-9A-Za-z_+\-*/^().,\s]+$/.test(raw))throw new Error('La expresión contiene un símbolo no permitido.');
+            const tree=math.parse(raw);
+            tree.traverse(node=>{
+                if(node.isAssignmentNode||node.isFunctionAssignmentNode||node.isAccessorNode||node.isBlockNode||node.isObjectNode)throw new Error('La expresión contiene una construcción no permitida.');
+                if(node.isSymbolNode&&!allowedSymbols.has(node.name))throw new Error(`No se reconoce “${node.name}”. Usa x o y y funciones con nombres en inglés.`);
+                if(node.isFunctionNode&&node.fn?.name&&!allowedSymbols.has(node.fn.name))throw new Error(`La función “${node.fn.name}” no está permitida.`);
+            });
+            return tree;
+        }
+        function compileSafeExpression(source){
+            return parseSafeExpression(source).compile();
+        }
+        function convertAsciiRoots(source){
+            function groupAt(text,open){
+                if(text[open]!=='(')return null;
+                let depth=0;
+                for(let i=open;i<text.length;i++){
+                    if(text[i]==='(')depth++;
+                    if(text[i]===')'&&--depth===0)return {content:text.slice(open+1,i),end:i+1};
+                }
+                return null;
+            }
+            let result='',cursor=0;
+            while(cursor<source.length){
+                const rootIndex=source.indexOf('root(',cursor);
+                if(rootIndex<0){result+=source.slice(cursor);break;}
+                result+=source.slice(cursor,rootIndex);
+                const indexGroup=groupAt(source,rootIndex+4);
+                if(!indexGroup){result+='root';cursor=rootIndex+4;continue;}
+                let radicandStart=indexGroup.end;
+                while(/\s/.test(source[radicandStart]||''))radicandStart++;
+                const radicandGroup=groupAt(source,radicandStart);
+                if(!radicandGroup){result+=source.slice(rootIndex,indexGroup.end);cursor=indexGroup.end;continue;}
+                result+=`nthRoot(${convertAsciiRoots(radicandGroup.content)},${convertAsciiRoots(indexGroup.content)})`;
+                cursor=radicandGroup.end;
+            }
+            return result;
+        }
+        function normalizeMathFieldAscii(source){
+            let raw=source.trim();
+            raw=raw.replace(/[\u00d7⋅·]/g,'*').replace(/÷/g,'/').replace(/π/g,'pi').replace(/\u2061/g,' ');
+            // MathLive puede exportar una función visual como "sin x". Math.js
+            // requiere que la aplicación de la función quede explícita.
+            raw=raw.replace(/\b(sin|cos|tan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|exp|log|ln)\s+([xy])\b/gi,(_,fn,arg)=>`${fn.toLowerCase()}(${arg})`);
+            // MathLive expresa una raíz n-ésima como root(n)(radicando).
+            return convertAsciiRoots(raw);
+        }
+        function mathFieldToExpression(input){
+            if(!mathEditorReady||typeof input.getValue!=='function')throw new Error('El editor matemático todavía se está cargando. Intenta nuevamente en un momento.');
+            return normalizeMathFieldAscii(input.getValue('ascii-math'));
+        }
+        function parseNumericExpression(source){
+            const raw=source.trim().replace(/π/g,'pi');
+            if(!raw)throw new Error('Escribe ambos extremos del intervalo.');
+            if(!/^[0-9A-Za-z_+\-*/^().,\s]+$/.test(raw))throw new Error('Usa números, pi y operaciones aritméticas.');
+            const tree=math.parse(raw);
+            const numericFunctions=['sqrt','nthRoot','abs','exp','log','ln','sin','cos','tan'];
+            tree.traverse(node=>{
+                if(node.isSymbolNode&&![...numericFunctions,'pi','e'].includes(node.name))throw new Error(`No se reconoce “${node.name}” en un extremo.`);
+                if(node.isFunctionNode&&node.fn?.name&&!numericFunctions.includes(node.fn.name))throw new Error(`La función “${node.fn.name}” no está permitida en un extremo.`);
+                if(node.isAssignmentNode||node.isFunctionAssignmentNode||node.isAccessorNode||node.isBlockNode||node.isObjectNode)throw new Error('El extremo contiene una construcción no permitida.');
+            });
+            const value=Number(tree.evaluate());
+            if(!Number.isFinite(value))throw new Error('El extremo debe representar un número real finito.');
+            return {tree,value};
+        }
 
         // --- Lógica de UI ---
         function handleAxisChange() {
             const selected_axis = axis_select.value;
+            const vertical = ['y', 'x=h'].includes(selected_axis);
             k_input_container.classList.toggle('hidden', selected_axis !== 'y=k');
             h_input_container.classList.toggle('hidden', selected_axis !== 'x=h');
-            vertical_rotation_help.classList.toggle('hidden', !['y', 'x=h'].includes(selected_axis));
+            vertical_rotation_help.classList.toggle('hidden', !vertical);
+        }
+        function selectedMethod(){
+            return document.querySelector('input[name="section-method"]:checked').value;
+        }
+        function handleMethodChange(){
+            const isDisk=selectedMethod()==='disk';
+            second_function_container.classList.toggle('hidden',isDisk);
+            second_legend_item.classList.toggle('hidden',isDisk);
+            f_label.textContent=isDisk?'Frontera de la región':'Primera frontera';
+            if(isDisk&&activeMathInput===g_x_input)setActiveMathInput(f_x_input);
+        }
+        function inputName(input){
+            if(input===f_x_input)return selectedMethod()==='disk'?'Frontera de la región':'Primera frontera';
+            if(input===g_x_input)return 'Segunda frontera';
+            return input===a_input?'Extremo a':'Extremo b';
+        }
+        function setActiveMathInput(input){
+            activeMathInput=input;
+            keypad_target.textContent=`Insertando en: ${inputName(input)}`;
+            const endpoint=input===a_input||input===b_input;
+            document.querySelectorAll('.variable-key').forEach(button=>button.disabled=endpoint);
+        }
+        function insertMathTemplate(template){
+            if(!mathEditorReady||typeof activeMathInput.insert!=='function'){
+                showError('El editor matemático todavía se está cargando.');
+                return;
+            }
+            activeMathInput.insert(template,{focus:true,selectionMode:'placeholder'});
         }
 
         // --- Función Principal de Generación ---
         function handleGenerateClick() {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
+            input_error.classList.remove('show'); input_error.textContent='';
+            if(!mathEditorReady){showError('El editor matemático todavía se está cargando. Intenta nuevamente en un momento.');return;}
             generate_btn.disabled = true;
             generate_btn_text.textContent = 'Generando...';
             plot2d_div.innerHTML = '';
@@ -219,71 +418,60 @@
 
             setTimeout(() => {
                 try {
-                    const f_x_str = f_x_input.value || '0';
-                    const g_x_str = g_x_input.value || '0';
-                    const a = parseFloat(a_input.value);
-                    const b = parseFloat(b_input.value);
+                    const f_x_str = mathFieldToExpression(f_x_input);
+                    const is_disk_method = selectedMethod()==='disk';
+                    const g_x_str = is_disk_method ? '0' : mathFieldToExpression(g_x_input);
+                    let a,b;
+                    try{
+                        a=parseNumericExpression(mathFieldToExpression(a_input)).value;
+                        b=parseNumericExpression(mathFieldToExpression(b_input)).value;
+                    }catch(error){
+                        showError('Revisa que ambos extremos estén completos y representen números reales. Puedes usar enteros, fracciones o múltiplos de π.');
+                        return;
+                    }
                     const axis = axis_select.value;
                     const k = (axis === 'y=k') ? parseFloat(k_val_input.value) : 0;
                     const h = (axis === 'x=h') ? parseFloat(h_val_input.value) : 0;
                     const is_vertical_rotation = (axis === 'y' || axis === 'x=h');
 
-                    if (isNaN(a) || isNaN(b) || a > b) { // Permitir a=b para puntos
-                        showError("Límites 'a' y 'b' inválidos. Asegúrate que a <= b.");
+                    if (!(a < b)) {
+                        showError('Los extremos deben cumplir a < b.');
                         return;
                     }
+                    if((axis==='y=k'&&!Number.isFinite(k))||(axis==='x=h'&&!Number.isFinite(h))){showError('El valor del eje de rotación debe ser un número.');return;}
 
-                    const makeSafeEval = (funcStr) => {
-                        const safeStr = funcStr.replace(/sqrt\(([^)]+)\)/g, 'sqrt(max(0, $1))');
-                        return math.compile(safeStr);
-                    };
+                    const f = compileSafeExpression(f_x_str);
+                    const g = compileSafeExpression(g_x_str);
+                    for(let i=0;i<=300;i++){
+                        const t=a+(b-a)*i/300,scope=is_vertical_rotation?{y:t}:{x:t};
+                        const fv=Number(f.evaluate(scope)),gv=Number(g.evaluate(scope));
+                        if(!Number.isFinite(fv)||!Number.isFinite(gv))throw new Error(`La región no está definida con valores reales en todo el intervalo; revisa cerca de ${t.toFixed(4)}.`);
+                    }
 
-                    const f = makeSafeEval(f_x_str);
-                    const g = makeSafeEval(g_x_str);
-                    
-                    const test_var = is_vertical_rotation ? {y: a} : {x: a};
-                    f.evaluate(test_var);
-                    g.evaluate(test_var);
-
-                    plot2D(f, g, a, b, axis, k, h);
-                    calculateAndDisplayVolume(f_x_str, g_x_str, f, g, a, b, axis, k, h);
-
-                    let start = null;
-                    const duration = 8000;
-
-                    const step = (timestamp) => {
-                        if (!start) start = timestamp;
-                        const progress = timestamp - start;
-                        const angle = Math.min((progress / duration) * 360, 360);
-                        plot3D(f, g, a, b, angle, axis, k, h);
-                        if (progress < duration) {
-                            animationFrameId = requestAnimationFrame(step);
-                        } else {
-                            generate_btn.disabled = false;
-                            generate_btn_text.textContent = 'Generar Sólido';
-                            animationFrameId = null;
-                        }
-                    };
-                    animationFrameId = requestAnimationFrame(step);
+                    plot2D(f, g, a, b, axis, k, h, is_disk_method);
+                    calculateAndDisplayVolume(f_x_str, g_x_str, mathFieldToExpression(a_input), mathFieldToExpression(b_input), f, g, a, b, axis, k, h, is_disk_method);
+                    currentModel={f,g,a,b,axis,k,h,isDisk:is_disk_method};
+                    rotation_angle.value='0';rotation_value.textContent='0';
+                    plot3D(f,g,a,b,0,axis,k,h,is_disk_method);
+                    generate_btn.disabled=false;generate_btn_text.textContent='Actualizar visualización';
                 } catch(err) {
                      generate_btn.disabled = false;
-                     generate_btn_text.textContent = 'Generar Sólido';
-                     console.error(err);
-                     
+                     generate_btn_text.textContent = 'Visualizar sólido';
                      if (err.message.includes("Unexpected end of expression") || err.message.includes("Parenthesis ) expected")) {
-                         showError("Error de sintaxis. ¿Olvidaste los paréntesis? Escribe <b>sin(x)</b> en lugar de <b>sin x</b>.");
+                         showError("La expresión está incompleta. Revisa las casillas vacías de la fórmula.");
+                     } else if(err.message.includes('no está definida')){
+                        showError(err.message);
                      } else {
                         const helpful_error_message = `
                             <div>
                                 <p class="font-bold text-lg mb-2">Error en la expresión</p>
-                                <p class="mb-3">Revisa la sintaxis de la función.</p>
+                                <p class="mb-3">La expresión no pudo interpretarse. Revisa que todos los espacios de la fórmula estén completos.</p>
                                 <div class="text-left text-sm p-3 bg-red-50 rounded-lg border border-red-200 text-gray-700">
-                                    <p class="font-semibold">Ejemplos de sintaxis correcta:</p>
+                                    <p class="font-semibold">Sugerencias:</p>
                                     <ul class="list-disc list-inside mt-1 space-y-1">
-                                        <li><b>Multiplicación:</b> <code>5*x</code> (no <code>5x</code>)</li>
-                                        <li><b>Potencias:</b> <code>x^2</code> (no <code>x2</code>)</li>
-                                        <li><b>Raíz cuadrada:</b> <code>sqrt(x)</code> o <code>x^(1/2)</code></li>
-                                        <li><b>Funciones Trig:</b> <code>sin(x)</code> (no <code>sin x</code>)</li>
+                                        <li>Usa los botones para construir fracciones, potencias y raíces.</li>
+                                        <li>Completa cada casilla vacía antes de visualizar.</li>
+                                        <li>En una rotación vertical, utiliza la variable <b>y</b>.</li>
                                     </ul>
                                 </div>
                             </div>`;
@@ -294,13 +482,23 @@
         }
 
         function showError(message) {
+             input_error.innerHTML=message;input_error.classList.add('show');
              plot2d_div.innerHTML = `<div class="w-full h-full flex items-center justify-center text-red-600 p-4 text-center">${message}</div>`;
              plot3d_div.innerHTML = '';
              integral_display_div.textContent = '';
              volume_display_div.textContent = '--';
+             method_note.textContent='';
+             method_note.classList.add('hidden');
+             generate_btn.disabled=false;generate_btn_text.textContent='Visualizar sólido';
         }
 
-        function plot2D(f, g, a, b, axis, k, h) {
+        function linearRange(a,b,steps){
+            // Construir los puntos por índice evita que la suma repetida del paso
+            // sobrepase ligeramente b (crítico en dominios como sqrt(1-x^2)).
+            return Array.from({length:steps+1},(_,i)=>i===steps?b:a+(b-a)*i/steps);
+        }
+
+        function plot2D(f, g, a, b, axis, k, h, is_disk) {
             const steps = 200; 
             const traces = [];
             const is_vertical = (axis === 'y' || axis === 'x=h');
@@ -313,12 +511,12 @@
             };
 
             if (is_vertical) {
-                const y_range = math.range(a, b, (b - a) / steps, true).toArray();
+                const y_range = linearRange(a,b,steps);
                 const x_vals_f = y_range.map(y => evaluate(f, { y }));
-                const x_vals_g = y_range.map(y => evaluate(g, { y }));
+                const x_vals_g = y_range.map(y => is_disk?h:evaluate(g, { y }));
 
-                traces.push({ x: x_vals_f, y: y_range, mode: 'lines', name: 'x=f(y)', line: { color: '#0057b8', width: 3 }, connectgaps: false });
-                traces.push({ x: x_vals_g, y: y_range, mode: 'lines', name: 'x=g(y)', line: { color: '#e06b16', width: 3 }, connectgaps: false });
+                traces.push({ x: x_vals_f, y: y_range, mode: 'lines', name: is_disk?'Frontera':'Primera frontera', line: { color: '#0057b8', width: 3 }, connectgaps: false });
+                if(!is_disk)traces.push({ x: x_vals_g, y: y_range, mode: 'lines', name: 'Segunda frontera', line: { color: '#e06b16', width: 3 }, connectgaps: false });
                 
                 const fill_x = x_vals_f.filter(v => v !== null).concat(x_vals_g.filter(v => v !== null).slice().reverse());
                 const fill_y = y_range.filter((v, i) => x_vals_f[i] !== null).concat(y_range.filter((v, i) => x_vals_g[i] !== null).slice().reverse());
@@ -328,12 +526,12 @@
                 traces.push({ x: [axis_x_val, axis_x_val], y: [a, b], mode: 'lines', name: `Eje x=${axis_x_val}`, line: { color: '#7357b8', width: 2.5, dash: 'dash' } });
 
             } else {
-                const x_range = math.range(a, b, (b - a) / steps, true).toArray();
+                const x_range = linearRange(a,b,steps);
                 const y_vals_f = x_range.map(x => evaluate(f, { x }));
-                const y_vals_g = x_range.map(x => evaluate(g, { x }));
+                const y_vals_g = x_range.map(x => is_disk?k:evaluate(g, { x }));
                 
-                traces.push({ x: x_range, y: y_vals_f, mode: 'lines', name: 'y=f(x)', line: { color: '#0057b8', width: 3 }, connectgaps: false });
-                traces.push({ x: x_range, y: y_vals_g, mode: 'lines', name: 'y=g(x)', line: { color: '#e06b16', width: 3 }, connectgaps: false });
+                traces.push({ x: x_range, y: y_vals_f, mode: 'lines', name: is_disk?'Frontera':'Primera frontera', line: { color: '#0057b8', width: 3 }, connectgaps: false });
+                if(!is_disk)traces.push({ x: x_range, y: y_vals_g, mode: 'lines', name: 'Segunda frontera', line: { color: '#e06b16', width: 3 }, connectgaps: false });
 
                 const fill_x = x_range.filter((v, i) => y_vals_f[i] !== null).concat(x_range.filter((v, i) => y_vals_g[i] !== null).slice().reverse());
                 const fill_y = y_vals_f.filter(v => v !== null).concat(y_vals_g.filter(v => v !== null).slice().reverse());
@@ -343,24 +541,26 @@
                 traces.push({ x: [a, b], y: [axis_y_val, axis_y_val], mode: 'lines', name: `Eje y=${axis_y_val}`, line: { color: '#7357b8', width: 2.5, dash: 'dash' } });
             }
             
+            const axisStyle={showline:true,linecolor:'#111',linewidth:2,gridcolor:'#d7e2e7',gridwidth:1,zerolinecolor:'#111',zerolinewidth:2,ticks:'outside'};
             const layout = { 
                 margin: { t: 20, r: 20, b: 40, l: 40 }, 
-                xaxis: { title: 'x', range: is_vertical ? null : [a, b] }, 
-                yaxis: { title: 'y', scaleanchor: "x", scaleratio: 1, range: is_vertical ? [a, b] : null }, 
-                legend: { x: 0.05, y: 0.95 } 
+                paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'#fbfdfe',
+                xaxis: { ...axisStyle, title: 'x', range: is_vertical ? null : [a, b] }, 
+                yaxis: { ...axisStyle, title: 'y', scaleanchor: "x", scaleratio: 1, range: is_vertical ? [a, b] : null }, 
+                legend: { x: 0.02, y: 0.98, bgcolor:'rgba(255,255,255,.82)' } 
             };
-            Plotly.newPlot(plot2d_div, traces, layout, {responsive: true});
+            Plotly.react(plot2d_div, traces, layout, {responsive:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','select2d']});
         }
                 
-        function plot3D(f, g, a, b, rotation_deg, axis, k, h) {
+        function plot3D(f, g, a, b, rotation_deg, axis, k, h, is_disk) {
             const rotation_rad = rotation_deg * Math.PI / 180;
-            const range_steps = 40;
-            const theta_steps = 40;
+            const range_steps = 64;
+            const theta_steps = 64;
 
             function createSurface(func, color) {
                 const z_surf = [], y_surf = [], x_surf = [];
-                const main_range = math.range(a, b, (b - a) / range_steps, true).toArray();
-                const theta_range = rotation_rad > 0 ? math.range(0, rotation_rad, rotation_rad / theta_steps, true).toArray() : [0];
+                const main_range = linearRange(a,b,range_steps);
+                const theta_range = rotation_rad > 0 ? linearRange(0,rotation_rad,theta_steps) : [0];
 
                 for (let i = 0; i < main_range.length; i++) {
                     const z_row = [], y_row = [], x_row = [];
@@ -397,12 +597,38 @@
                 }
                 return { x: x_surf, y: y_surf, z: z_surf, type: 'surface', colorscale: color, showscale: false, hoverinfo: 'none', connectgaps: false };
             }
+
+            function createProfileTrace(func,color,name){
+                const main_range=linearRange(a,b,range_steps);
+                if(axis==='y'||axis==='x=h'){
+                    return {type:'scatter3d',mode:'lines',x:main_range.map(y=>func.evaluate({y})),y:main_range,z:main_range.map(()=>0),line:{color,width:5},name,hoverinfo:'none'};
+                }
+                return {type:'scatter3d',mode:'lines',x:main_range,y:main_range.map(x=>func.evaluate({x})),z:main_range.map(()=>0),line:{color,width:5},name,hoverinfo:'none'};
+            }
+            function createPlanarRegion(){
+                const main_range=linearRange(a,b,range_steps);
+                const x=[],y=[],z=[];
+                main_range.forEach(value=>{
+                    if(axis==='y'||axis==='x=h'){
+                        x.push([f.evaluate({y:value}),is_disk?h:g.evaluate({y:value})]);
+                        y.push([value,value]);
+                    }else{
+                        x.push([value,value]);
+                        y.push([f.evaluate({x:value}),is_disk?k:g.evaluate({x:value})]);
+                    }
+                    z.push([0,0]);
+                });
+                return {type:'surface',x,y,z,colorscale:[[0,'#bfe3e4'],[1,'#bfe3e4']],opacity:.55,showscale:false,hoverinfo:'none',name:'Región generadora'};
+            }
             
             const blueScale=[[0,'#dbeafe'],[1,'#0057b8']],orangeScale=[[0,'#ffedd5'],[1,'#e06b16']];
-            const data = [createSurface(f, blueScale)];
-            if (g_x_input.value.trim() !== '0' && g_x_input.value.trim() !== '') {
-                 data.push(createSurface(g, orangeScale));
+            const data = [createPlanarRegion()];
+            if(rotation_deg>0){
+                data.push(createSurface(f, blueScale));
+                if(!is_disk)data.push(createSurface(g, orangeScale));
             }
+            data.push(createProfileTrace(f,'#0057b8',is_disk?'Frontera':'Primera frontera'));
+            if(!is_disk)data.push(createProfileTrace(g,'#e06b16','Segunda frontera'));
 
             const is_vertical = (axis === 'y' || axis === 'x=h');
             let axis_trace_3d = {
@@ -427,23 +653,25 @@
             
             const scene_layout = {
                 aspectmode: 'data',
-                camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } },
+                camera: { eye: rotation_deg===0 ? {x:0,y:0,z:2.5} : {x:1.35,y:1.35,z:1.55}, up:{x:0,y:1,z:0}, projection:{type:'orthographic'} },
+                dragmode:'orbit',
                 xaxis: { title: { text: 'x' }, range: is_vertical ? null : [a, b] },
                 yaxis: { title: { text: 'y' }, range: is_vertical ? [a, b] : null },
                 zaxis: { title: { text: 'z' } }
             };
 
-            const layout = { showlegend: false, margin: { t: 0, r: 0, b: 0, l: 0 }, scene: scene_layout };
-            Plotly.newPlot(plot3d_div, data, layout, {responsive: true});
+            const layout = { showlegend:false,paper_bgcolor:'rgba(0,0,0,0)',margin:{t:0,r:0,b:0,l:0},scene:{...scene_layout,bgcolor:'#fbfdfe'} };
+            Plotly.react(plot3d_div,data,layout,{responsive:true,displaylogo:false});
         }
         
-        function calculateAndDisplayVolume(f_str_raw, g_str_raw, f, g, a, b, axis, k, h) {
+        function calculateAndDisplayVolume(f_str_raw, g_str_raw, a_str_raw, b_str_raw, f, g, a, b, axis, k, h, is_disk_method) {
             const n_steps = 2000; // Increased precision
             let volume = 0;
+            let crossesAxis=false,outerSwitches=false,firstOuter=null;
             
             const toLatex = (str) => {
                 try {
-                    return math.parse(str).toTex();
+                    return expressionToLatex(math.parse(str));
                 } catch (e) {
                     return str.replace(/\*/g, ' ');
                 }
@@ -451,8 +679,16 @@
 
             const f_str_latex = toLatex(f_str_raw);
             const g_str_latex = toLatex(g_str_raw);
+            const a_str_latex = expressionToLatex(parseNumericExpression(a_str_raw).tree);
+            const b_str_latex = expressionToLatex(parseNumericExpression(b_str_raw).tree);
             let integral_latex = '';
-            const is_disk_method = g_str_raw.trim() === '0' || g_str_raw.trim() === '';
+            function sectionRadii(value1,value2,axisValue){
+                const d1=value1-axisValue,d2=value2-axisValue;
+                const outer=Math.abs(d1)>=Math.abs(d2)?'f':'g';
+                if(firstOuter===null)firstOuter=outer;else if(firstOuter!==outer)outerSwitches=true;
+                if(d1*d2<=0)crossesAxis=true;
+                return {R:Math.max(Math.abs(d1),Math.abs(d2)),r:d1*d2<=0?0:Math.min(Math.abs(d1),Math.abs(d2))};
+            }
             
             function formatLatexExpr(func_str, offset_val) {
                 if (offset_val === 0) return func_str;
@@ -467,16 +703,11 @@
             if (axis === 'y' || axis === 'x=h') {
                 const dy = (b - a) / n_steps;
                 for (let i = 0; i < n_steps; i++) {
-                    const y = a + i * dy;
+                    const y = a + (i+.5) * dy;
                     const val1 = f.evaluate({ y });
                     const val2 = is_disk_method ? h : g.evaluate({ y });
-
-                    const R = Math.max(Math.abs(val1 - h), Math.abs(val2 - h));
-                    const r = Math.min(Math.abs(val1 - h), Math.abs(val2 - h));
-                    
-                    if (!isNaN(R) && !isNaN(r)) {
-                        volume += Math.PI * (Math.pow(R, 2) - Math.pow(r, 2)) * dy;
-                    }
+                    const {R,r}=sectionRadii(val1,val2,h);
+                    volume += Math.PI * (R*R-r*r) * dy;
                 }
                 
                 // Determinar R y r para la fórmula LaTeX
@@ -493,24 +724,19 @@
                 }
 
                 if (is_disk_method) {
-                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_str}} \\right)^2 dy`;
+                     integral_latex = `V = \\pi \\int_{${a_str_latex}}^{${b_str_latex}} \\left(${R_str}\\right)^2\\,dy`;
                 } else {
-                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${formatLatexExpr(R_blue_str, h)}} \\right)^2 - \\left( \\red{${formatLatexExpr(r_red_str, h)}} \\right)^2 \\right] dy`;
+                     integral_latex = `V = \\pi \\int_{${a_str_latex}}^{${b_str_latex}} \\left[\\left(${formatLatexExpr(R_blue_str, h)}\\right)^2-\\left(${formatLatexExpr(r_red_str, h)}\\right)^2\\right]\\,dy`;
                 }
 
             } else { // axis 'x' or 'y=k'
                 const dx = (b - a) / n_steps;
                 for (let i = 0; i < n_steps; i++) {
-                    const x = a + i * dx;
+                    const x = a + (i+.5) * dx;
                     const val1 = f.evaluate({ x });
                     const val2 = is_disk_method ? k : g.evaluate({ x });
-                    
-                    const R = Math.max(Math.abs(val1 - k), Math.abs(val2 - k));
-                    const r = Math.min(Math.abs(val1 - k), Math.abs(val2 - k));
-
-                    if (!isNaN(R) && !isNaN(r)) {
-                        volume += Math.PI * (Math.pow(R, 2) - Math.pow(r, 2)) * dx;
-                    }
+                    const {R,r}=sectionRadii(val1,val2,k);
+                    volume += Math.PI * (R*R-r*r) * dx;
                 }
 
                 const val1_mid = f.evaluate({x: mid});
@@ -523,32 +749,86 @@
 
                 if (is_disk_method) {
                      const R_expr = formatLatexExpr(f_str_latex, k);
-                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left( \\blue{${R_expr}} \\right)^2 dx`;
+                     integral_latex = `V = \\pi \\int_{${a_str_latex}}^{${b_str_latex}} \\left(${R_expr}\\right)^2\\,dx`;
                 } else {
-                     integral_latex = `V = \\pi \\int_{${a}}^{${b}} \\left[ \\left( \\blue{${formatLatexExpr(R_blue_str, k)}} \\right)^2 - \\left( \\red{${formatLatexExpr(r_red_str, k)}} \\right)^2 \\right] dx`;
+                     integral_latex = `V = \\pi \\int_{${a_str_latex}}^{${b_str_latex}} \\left[\\left(${formatLatexExpr(R_blue_str, k)}\\right)^2-\\left(${formatLatexExpr(r_red_str, k)}\\right)^2\\right]\\,dx`;
                 }
             }
             // --- FIN LÓGICA CORREGIDA ---
 
-            if (isNaN(volume)) {
+            const variable=(axis==='y'||axis==='x=h')?'y':'x';
+            const axisValue=(axis==='y'||axis==='x=h')?h:k;
+            if(!is_disk_method){
+                method_note.classList.remove('hidden');
+                const df=`\\left|${formatLatexExpr(f_str_latex,axisValue)}\\right|`,dg=`\\left|${formatLatexExpr(g_str_latex,axisValue)}\\right|`;
+                integral_latex=`V=\\pi\\int_{${a_str_latex}}^{${b_str_latex}}\\left[R(${variable})^2-r(${variable})^2\\right]\\,d${variable}`;
+                method_note.innerHTML=`<strong>Radios usados:</strong> \\(R(${variable})=\\max\\{${df},${dg}\\}\\). ${crossesAxis?`Como la región atraviesa el eje en parte del intervalo, allí \\(r(${variable})=0\\).`:`El radio interior es la menor de esas dos distancias.`}${outerSwitches?' Las curvas intercambian cuál determina el radio exterior, por lo que no se fuerza una sola fórmula simplificada.':''}`;
+            }else{
+                method_note.textContent='';
+                method_note.classList.add('hidden');
+            }
+
+            if (!Number.isFinite(volume)) {
                 volume_display_div.innerHTML = `<span class="text-2xl text-red-600">Error de Dominio</span>`;
                 integral_display_div.innerHTML = `<span class="text-sm text-red-600">La función no es real en el intervalo.</span>`;
                 return;
             }
 
-            volume_display_div.textContent = Math.abs(volume).toFixed(4) + ' u³';
+            const cleanVolume=Math.abs(volume)<1e-12?0:Math.abs(volume);
+            volume_display_div.textContent = cleanVolume.toFixed(4) + ' u³';
             integral_display_div.innerHTML = `$${integral_latex}$`;
             if (window.MathJax) {
-                 MathJax.typesetPromise().catch((err) => console.error('MathJax error: ', err));
+                 MathJax.typesetPromise([integral_display_div,method_note]).catch((err) => console.error('MathJax error: ', err));
             }
         }
         
         // --- Event Listeners ---
         axis_select.addEventListener('change', handleAxisChange);
+        method_inputs.forEach(input=>input.addEventListener('change',handleMethodChange));
         generate_btn.addEventListener('click', handleGenerateClick);
+        rotation_angle.addEventListener('input',()=>{
+            rotation_value.textContent=rotation_angle.value;
+            if(!currentModel)return;
+            if(rotationFrame)cancelAnimationFrame(rotationFrame);
+            rotationFrame=requestAnimationFrame(()=>{plot3D(currentModel.f,currentModel.g,currentModel.a,currentModel.b,+rotation_angle.value,currentModel.axis,currentModel.k,currentModel.h,currentModel.isDisk);rotationFrame=null;});
+        });
+        document.getElementById('reset-btn').addEventListener('click',()=>{
+            document.getElementById('method-disk').checked=true;
+            [f_x_input,g_x_input,a_input,b_input].forEach(input=>input.setValue(''));
+            axis_select.value='x';k_val_input.value='-1';h_val_input.value='-1';
+            currentModel=null;input_error.classList.remove('show');input_error.textContent='';visuals_container.classList.add('hidden');
+            generate_btn_text.textContent='Visualizar sólido';
+            handleMethodChange();handleAxisChange();setActiveMathInput(f_x_input);
+        });
+        [f_x_input,g_x_input,a_input,b_input].forEach(input=>input.addEventListener('focusin',()=>setActiveMathInput(input)));
+        document.querySelectorAll('.math-key').forEach(button=>button.addEventListener('click',()=>{
+            if(button.disabled)return;
+            insertMathTemplate(button.dataset.template);
+        }));
+        [f_x_input,g_x_input,a_input,b_input,k_val_input,h_val_input].forEach(input=>input.addEventListener('keydown',event=>{if(event.key==='Enter')handleGenerateClick();}));
         
         // --- Carga inicial ---
+        handleMethodChange();
         handleAxisChange();
+        setActiveMathInput(f_x_input);
+        generate_btn.disabled=true;
+        generate_btn_text.textContent='Cargando editor matemático...';
+        customElements.whenDefined('math-field').then(()=>{
+            mathEditorReady=true;
+            [f_x_input,g_x_input,a_input,b_input].forEach(input=>{
+                input.smartFence=true;
+                input.smartMode=false;
+            });
+            generate_btn.disabled=false;
+            generate_btn_text.textContent='Visualizar sólido';
+        });
+        window.setTimeout(()=>{
+            if(!mathEditorReady){
+                showError('No fue posible cargar el editor matemático. Comprueba la conexión a Internet y vuelve a cargar la página.');
+                generate_btn.disabled=true;
+                generate_btn_text.textContent='Editor no disponible';
+            }
+        },10000);
     </script>
 </body>
 </html>
