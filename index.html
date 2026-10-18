@@ -365,10 +365,11 @@
             raw=raw.replace(/[\u00d7⋅·]/g,'*').replace(/÷/g,'/').replace(/π/g,'pi').replace(/\u2061/g,' ');
             // MathLive puede exportar una función visual como "sin x". Math.js
             // requiere que la aplicación de la función quede explícita.
-            raw=raw.replace(/\b(sin|cos|tan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|exp|log|ln)\s+([xy])\b/gi,(_,fn,arg)=>`${fn.toLowerCase()}(${arg})`);
             // La notación visible es ln, mientras Math.js evalúa el
-            // logaritmo natural de un argumento con log(...).
-            raw=raw.replace(/\bln\s*\(/gi,'log(');
+            // logaritmo natural de un argumento con log(...). Convertir primero
+            // el operador permite aceptar ln x, ln(x) y ln (x).
+            raw=raw.replace(/\bln\b/gi,'log');
+            raw=raw.replace(/\b(sin|cos|tan|asin|acos|atan|sinh|cosh|tanh|sqrt|abs|exp|log)\s+([xy])\b/gi,(_,fn,arg)=>`${fn.toLowerCase()}(${arg})`);
             // MathLive expresa una raíz n-ésima como root(n)(radicando).
             raw=convertAsciiRoots(raw);
             // Aceptar tanto la expresión sola como la ecuación completa que el
