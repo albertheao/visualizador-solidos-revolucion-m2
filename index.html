@@ -81,6 +81,10 @@
         .rotation-control { margin-top:1rem; padding:.85rem 1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
         .rotation-control label { display:flex; justify-content:space-between; gap:1rem; color:var(--dma-muted); font-size:.82rem; font-weight:700; }
         .rotation-control input { width:100%; accent-color:var(--dma-gold); }
+        .visual-options { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem 1.25rem; margin:0 0 1rem; padding:.8rem 1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
+        .visual-options strong { color:var(--dma-navy); font-size:.84rem; }
+        .visual-option { display:inline-flex; align-items:center; gap:.45rem; color:var(--dma-muted); font-size:.8rem; font-weight:700; cursor:pointer; }
+        .visual-option input { width:1rem; height:1rem; accent-color:var(--dma-gold); }
         .method-selector { margin-bottom:1.35rem; padding:1rem; border:1px solid var(--dma-border); border-radius:12px; background:#f7fafb; }
         .method-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; margin-top:.55rem; }
         .method-option { position:relative; }
@@ -98,8 +102,9 @@
         .axis-value input { width:5.25rem; padding:.48rem .55rem; border:1px solid #d1d5db; border-radius:7px; background:#fff; color:var(--dma-ink); box-shadow:0 1px 2px rgba(18,50,74,.06); }
         .legend-row { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:.35rem 0 0; color:var(--dma-muted); font-size:.72rem; }
         .legend-row span { display:inline-flex; align-items:center; gap:.35rem; }
+        .legend-row span.hidden { display:none; }
         .legend-dot { width:.7rem; height:.7rem; border-radius:3px; }
-        .legend-f { background:var(--dma-strong-blue); }.legend-g { background:var(--dma-orange); }.legend-region { background:var(--dma-turquoise); }.legend-axis { background:var(--dma-violet); }
+        .legend-f { background:var(--dma-strong-blue); }.legend-g { background:var(--dma-orange); }.legend-region { background:var(--dma-turquoise); }.legend-axis { background:var(--dma-violet); }.legend-section { background:var(--dma-gold); }.legend-radius { background:var(--dma-navy); }.legend-radius-r { background:var(--dma-turquoise); }
         mjx-container[jax="SVG"]:not([display="true"]){display:inline-block !important;margin:0 .08em !important}
         mjx-container[jax="SVG"]:not([display="true"]) svg{display:inline !important;vertical-align:middle}
         @media (max-width:640px) { .plot-container { height:380px; } body > .container{padding:22px 12px !important}.dma-header{margin-bottom:1.25rem !important}.method-options{grid-template-columns:1fr} }
@@ -222,11 +227,17 @@
 
         <!-- Visualizaciones (Ocultas por defecto) -->
         <div id="visuals-and-results-container" class="hidden">
+            <div class="visual-options" aria-label="Opciones de la visualización">
+                <strong>Elementos didácticos</strong>
+                <label class="visual-option" for="show-section"><input id="show-section" type="checkbox"> Mostrar sección y rectángulo</label>
+                <label class="visual-option" for="show-radii"><input id="show-radii" type="checkbox"> Mostrar radios (R) y (r)</label>
+                <span class="control-help">El rectángulo se muestra en el punto medio; la sección 3D se forma al aumentar el ángulo de giro.</span>
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <div class="bg-white p-4 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold text-center mb-2">Región Plana (2D)</h3>
                     <div id="plot2d" class="plot-container"></div>
-                    <div class="legend-row" aria-label="Leyenda"><span><i class="legend-dot legend-f"></i>Frontera exterior</span><span id="second-legend-item"><i class="legend-dot legend-g"></i>Frontera interior</span><span><i class="legend-dot legend-region"></i>Región</span><span><i class="legend-dot legend-axis"></i>Eje de rotación</span></div>
+                    <div class="legend-row" aria-label="Leyenda"><span><i class="legend-dot legend-f"></i>Frontera exterior</span><span id="second-legend-item"><i class="legend-dot legend-g"></i>Frontera interior</span><span><i class="legend-dot legend-region"></i>Región</span><span><i class="legend-dot legend-axis"></i>Eje de rotación</span><span id="section-legend-item" class="hidden"><i class="legend-dot legend-section"></i>Sección</span><span id="radius-legend-item" class="hidden"><i class="legend-dot legend-radius"></i>Radio (R)</span><span id="radius-r-legend-item" class="hidden"><i class="legend-dot legend-radius-r"></i>Radio (r)</span></div>
                 </div>
                 <div class="bg-white p-4 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold text-center mb-2">Sólido de Revolución (3D)</h3>
@@ -243,7 +254,7 @@
                 <h2 class="text-2xl font-semibold mb-4">Resultados del Cálculo</h2>
                 <div class="flex flex-col md:flex-row items-center justify-around text-center">
                     <div>
-                        <h3 class="text-lg font-medium text-gray-600">Integral de Volumen</h3>
+                        <h3 class="text-lg font-medium text-gray-600">Fórmula general</h3>
                         <div id="integral-display" class="text-2xl mt-2 p-4"></div>
                     </div>
                     <div class="mt-6 md:mt-0">
@@ -290,6 +301,11 @@
         const input_error = document.getElementById('input-error');
         const rotation_angle = document.getElementById('rotation-angle');
         const rotation_value = document.getElementById('rotation-value');
+        const show_section_input = document.getElementById('show-section');
+        const show_radii_input = document.getElementById('show-radii');
+        const section_legend_item = document.getElementById('section-legend-item');
+        const radius_legend_item = document.getElementById('radius-legend-item');
+        const radius_r_legend_item = document.getElementById('radius-r-legend-item');
         let currentModel = null;
         let rotationFrame = null;
         let activeMathInput = f_x_input;
@@ -427,6 +443,32 @@
             container.replaceChildren();
         }
 
+        function sectionGeometry(f,g,value,axis,k,h,is_disk){
+            const vertical=axis==='y'||axis==='x=h';
+            const axisValue=vertical?h:k;
+            const scope=vertical?{y:value}:{x:value};
+            const outerValue=Number(f.evaluate(scope));
+            const innerValue=is_disk?axisValue:Number(g.evaluate(scope));
+            const outerDistance=Math.abs(outerValue-axisValue);
+            const innerDistance=Math.abs(innerValue-axisValue);
+            const R=Math.max(outerDistance,innerDistance);
+            const crossesAxis=(outerValue-axisValue)*(innerValue-axisValue)<=0;
+            const r=is_disk||crossesAxis?0:Math.min(outerDistance,innerDistance);
+            const direction=Math.sign((outerDistance>=innerDistance?outerValue:innerValue)-axisValue)||1;
+            return {vertical,axisValue,outerValue,innerValue,R,r,direction};
+        }
+
+        function redrawCurrentVisuals(){
+            if(!currentModel)return;
+            const {f,g,a,b,axis,k,h,isDisk}=currentModel;
+            const middleSection=sectionGeometry(f,g,(a+b)/2,axis,k,h,isDisk);
+            section_legend_item.classList.toggle('hidden',!show_section_input.checked);
+            radius_legend_item.classList.toggle('hidden',!show_radii_input.checked);
+            radius_r_legend_item.classList.toggle('hidden',!show_radii_input.checked||middleSection.r<=1e-12);
+            plot2D(f,g,a,b,axis,k,h,isDisk,show_section_input.checked,show_radii_input.checked);
+            plot3D(f,g,a,b,+rotation_angle.value,axis,k,h,isDisk,show_section_input.checked,show_radii_input.checked);
+        }
+
         // --- Función Principal de Generación ---
         function handleGenerateClick() {
             input_error.classList.remove('show'); input_error.textContent='';
@@ -486,11 +528,15 @@
                         if(!Number.isFinite(fv)||!Number.isFinite(gv))throw new Error(`La región no está definida con valores reales en todo el intervalo; revisa cerca de ${t.toFixed(4)}.`);
                     }
 
-                    plot2D(f, g, a, b, axis, k, h, is_disk_method);
+                    plot2D(f, g, a, b, axis, k, h, is_disk_method,show_section_input.checked,show_radii_input.checked);
                     calculateAndDisplayVolume(f_x_str, g_x_str, mathFieldToExpression(a_input), mathFieldToExpression(b_input), f, g, a, b, axis, k, h, is_disk_method);
                     currentModel={f,g,a,b,axis,k,h,isDisk:is_disk_method};
                     rotation_angle.value='0';rotation_value.textContent='0';
-                    plot3D(f,g,a,b,0,axis,k,h,is_disk_method);
+                    section_legend_item.classList.toggle('hidden',!show_section_input.checked);
+                    radius_legend_item.classList.toggle('hidden',!show_radii_input.checked);
+                    const generatedSection=sectionGeometry(f,g,(a+b)/2,axis,k,h,is_disk_method);
+                    radius_r_legend_item.classList.toggle('hidden',!show_radii_input.checked||generatedSection.r<=1e-12);
+                    plot3D(f,g,a,b,0,axis,k,h,is_disk_method,show_section_input.checked,show_radii_input.checked);
                     generate_btn.disabled=false;generate_btn_text.textContent='Actualizar visualización';
                 } catch(err) {
                      generate_btn.disabled = false;
@@ -537,7 +583,7 @@
             return Array.from({length:steps+1},(_,i)=>i===steps?b:a+(b-a)*i/steps);
         }
 
-        function plot2D(f, g, a, b, axis, k, h, is_disk) {
+        function plot2D(f, g, a, b, axis, k, h, is_disk,show_section=false,show_radii=false) {
             const steps = 200; 
             const traces = [];
             const is_vertical = (axis === 'y' || axis === 'x=h');
@@ -579,6 +625,35 @@
                 const axis_y_val = (axis === 'x') ? 0 : k;
                 traces.push({ x: [a, b], y: [axis_y_val, axis_y_val], mode: 'lines', name: `Eje y=${axis_y_val}`, line: { color: '#7357b8', width: 2.5, dash: 'dash' } });
             }
+
+            const sectionValue=(a+b)/2;
+            const section=sectionGeometry(f,g,sectionValue,axis,k,h,is_disk);
+            const halfWidth=Math.max((b-a)*0.018,Number.EPSILON);
+            const t0=Math.max(a,sectionValue-halfWidth),t1=Math.min(b,sectionValue+halfWidth);
+            if(show_section){
+                if(section.vertical){
+                    traces.push({x:[section.innerValue,section.outerValue,section.outerValue,section.innerValue,section.innerValue],y:[t0,t0,t1,t1,t0],mode:'lines',fill:'toself',fillcolor:'rgba(214,165,42,.48)',line:{color:'#8a6508',width:2},name:'Rectángulo representativo',hoverinfo:'name'});
+                }else{
+                    traces.push({x:[t0,t1,t1,t0,t0],y:[section.innerValue,section.innerValue,section.outerValue,section.outerValue,section.innerValue],mode:'lines',fill:'toself',fillcolor:'rgba(214,165,42,.48)',line:{color:'#8a6508',width:2},name:'Rectángulo representativo',hoverinfo:'name'});
+                }
+            }
+            if(show_radii){
+                const radiusOffset=is_disk?0:halfWidth*.58;
+                const outerPosition=sectionValue-radiusOffset;
+                const innerPosition=sectionValue+radiusOffset;
+                const outerPoint=section.axisValue+section.direction*section.R;
+                const radiusTrace=section.vertical
+                    ? {x:[section.axisValue,outerPoint],y:[outerPosition,outerPosition]}
+                    : {x:[outerPosition,outerPosition],y:[section.axisValue,outerPoint]};
+                traces.push({...radiusTrace,type:'scatter',mode:'lines+markers+text',text:['','R'],textposition:'top center',textfont:{color:'#12324a',size:13},marker:{size:[3,6],color:'#12324a'},line:{color:'#12324a',width:4},name:'Radio exterior R',hoverinfo:'name'});
+                if(section.r>1e-12){
+                    const innerPoint=section.axisValue+section.direction*section.r;
+                    const innerTrace=section.vertical
+                        ? {x:[section.axisValue,innerPoint],y:[innerPosition,innerPosition]}
+                        : {x:[innerPosition,innerPosition],y:[section.axisValue,innerPoint]};
+                    traces.push({...innerTrace,type:'scatter',mode:'lines+markers+text',text:['','r'],textposition:'middle right',textfont:{color:'#008c95',size:13},marker:{size:[3,6],color:'#008c95'},line:{color:'#008c95',width:4},name:'Radio interior r',hoverinfo:'name'});
+                }
+            }
             
             const axisStyle={showline:true,linecolor:'#111',linewidth:2,gridcolor:'#d7e2e7',gridwidth:1,zerolinecolor:'#111',zerolinewidth:2,ticks:'outside'};
             const layout = { 
@@ -591,7 +666,7 @@
             Plotly.react(plot2d_div, traces, layout, {responsive:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','select2d']});
         }
                 
-        function plot3D(f, g, a, b, rotation_deg, axis, k, h, is_disk) {
+        function plot3D(f, g, a, b, rotation_deg, axis, k, h, is_disk,show_section=false,show_radii=false) {
             const rotation_rad = rotation_deg * Math.PI / 180;
             const range_steps = 64;
             const theta_steps = 64;
@@ -634,7 +709,7 @@
                     }
                     x_surf.push(x_row); y_surf.push(y_row); z_surf.push(z_row);
                 }
-                return { x: x_surf, y: y_surf, z: z_surf, type: 'surface', colorscale: color, showscale: false, hoverinfo: 'none', connectgaps: false };
+                return { x: x_surf, y: y_surf, z: z_surf, type: 'surface', colorscale: color, opacity:(show_section||show_radii) ? .48 : 1, showscale: false, hoverinfo: 'none', connectgaps: false };
             }
 
             function createProfileTrace(func,color,name){
@@ -659,12 +734,68 @@
                 });
                 return {type:'surface',x,y,z,colorscale:[[0,'#bfe3e4'],[1,'#bfe3e4']],opacity:.55,showscale:false,hoverinfo:'none',name:'Región generadora'};
             }
+
+            const sectionValue=(a+b)/2;
+            const section=sectionGeometry(f,g,sectionValue,axis,k,h,is_disk);
+            const sectionThickness=Math.max((b-a)*.055,Number.EPSILON);
+            const sectionFront=Math.max(a,sectionValue-sectionThickness/2);
+            const sectionBack=Math.min(b,sectionValue+sectionThickness/2);
+            function sectionPoint(radius,theta,position=sectionValue){
+                if(section.vertical)return {x:section.axisValue+radius*Math.cos(theta),y:position,z:radius*Math.sin(theta)};
+                return {x:position,y:section.axisValue+radius*Math.cos(theta),z:radius*Math.sin(theta)};
+            }
+            function createCrossSection(){
+                const radial=linearRange(section.r,section.R,18);
+                const sectionThetaSteps=Math.max(2,Math.ceil(72*rotation_deg/360));
+                const theta=linearRange(0,rotation_rad,sectionThetaSteps);
+                const sectionScale=[[0,'#fff4c2'],[.55,'#d6a52a'],[1,'#8a6508']];
+                function face(position,name){
+                    const x=[],y=[],z=[];
+                    radial.forEach(radius=>{
+                        const points=theta.map(angle=>sectionPoint(radius,angle,position));
+                        x.push(points.map(p=>p.x));y.push(points.map(p=>p.y));z.push(points.map(p=>p.z));
+                    });
+                    return {type:'surface',x,y,z,colorscale:sectionScale,opacity:.96,showscale:false,hoverinfo:'none',name};
+                }
+                function wall(radius,name,inner=false){
+                    const rows=[sectionFront,sectionBack].map(position=>theta.map(angle=>sectionPoint(radius,angle,position)));
+                    return {type:'surface',x:rows.map(row=>row.map(p=>p.x)),y:rows.map(row=>row.map(p=>p.y)),z:rows.map(row=>row.map(p=>p.z)),colorscale:inner?[[0,'#705208'],[1,'#b98912']]:[[0,'#8a6508'],[1,'#e2b83d']],opacity:.98,showscale:false,hoverinfo:'none',name};
+                }
+                function radialWall(angle,name){
+                    const rows=[sectionFront,sectionBack].map(position=>radial.map(radius=>sectionPoint(radius,angle,position)));
+                    return {type:'surface',x:rows.map(row=>row.map(p=>p.x)),y:rows.map(row=>row.map(p=>p.y)),z:rows.map(row=>row.map(p=>p.z)),colorscale:[[0,'#8a6508'],[1,'#f1d36f']],opacity:.98,showscale:false,hoverinfo:'none',name};
+                }
+                const label=is_disk?'Disco representativo':'Arandela representativa';
+                const traces=[face(sectionFront,label),face(sectionBack,label),wall(section.R,'Borde exterior')];
+                if(section.r>1e-12)traces.push(wall(section.r,'Borde interior',true));
+                if(rotation_deg<359.999)traces.push(radialWall(0,'Cara inicial'),radialWall(rotation_rad,'Cara de giro'));
+                [sectionFront,sectionBack].forEach(position=>{
+                    [section.R,...(section.r>1e-12?[section.r]:[])].forEach((radius,index)=>{
+                        const points=theta.map(angle=>sectionPoint(radius,angle,position));
+                        traces.push({type:'scatter3d',mode:'lines',x:points.map(p=>p.x),y:points.map(p=>p.y),z:points.map(p=>p.z),line:{color:index===0?'#76570a':'#fff7d6',width:index===0?6:4},name:index===0?'Borde exterior':'Borde interior',hoverinfo:'name'});
+                    });
+                });
+                return traces;
+            }
+            function createRadiusTrace(radius,label,color,width,angle){
+                const visiblePosition=sectionBack+(b-a)*.012;
+                const endpoint=sectionPoint(radius,angle,visiblePosition);
+                const center=sectionPoint(0,angle,visiblePosition);
+                return {type:'scatter3d',mode:'lines+markers+text',x:[center.x,endpoint.x],y:[center.y,endpoint.y],z:[center.z,endpoint.z],text:['',label],textposition:'top center',textfont:{color,size:16},marker:{size:[4,7],color,line:{color:'#ffffff',width:2}},line:{color,width},name:`Radio ${label}`,hoverinfo:'name'};
+            }
             
             const blueScale=[[0,'#dbeafe'],[1,'#0057b8']],orangeScale=[[0,'#ffedd5'],[1,'#e06b16']];
             const data = [createPlanarRegion()];
             if(rotation_deg>0){
                 data.push(createSurface(f, blueScale));
                 if(!is_disk)data.push(createSurface(g, orangeScale));
+            }
+            if(show_section&&rotation_deg>0)data.push(...createCrossSection());
+            if(show_radii){
+                const outerRadiusAngle=rotation_deg>=359.999?Math.PI/4:rotation_rad*.55;
+                const innerRadiusAngle=rotation_deg>=359.999?3*Math.PI/4:rotation_rad*.78;
+                data.push(createRadiusTrace(section.R,'R','#12324a',11,outerRadiusAngle));
+                if(section.r>1e-12)data.push(createRadiusTrace(section.r,'r','#008c95',9,innerRadiusAngle));
             }
             data.push(createProfileTrace(f,'#0057b8','Frontera exterior'));
             if(!is_disk)data.push(createProfileTrace(g,'#e06b16','Frontera interior'));
@@ -792,9 +923,9 @@
             // --- FIN LÓGICA CORREGIDA ---
 
             const variable=(axis==='y'||axis==='x=h')?'y':'x';
-            if(!is_disk_method){
-                integral_latex=`V=\\pi\\int_{${a_str_latex}}^{${b_str_latex}}\\left[R(${variable})^2-r(${variable})^2\\right]\\,d${variable}`;
-            }
+            integral_latex=is_disk_method
+                ? `V=\\pi\\int_a^b R(${variable})^2\\,d${variable}`
+                : `V=\\pi\\int_a^b\\left[R(${variable})^2-r(${variable})^2\\right]\\,d${variable}`;
 
             if (!Number.isFinite(volume)) {
                 volume_display_div.innerHTML = `<span class="text-2xl text-red-600">Error de Dominio</span>`;
@@ -818,12 +949,15 @@
             rotation_value.textContent=rotation_angle.value;
             if(!currentModel)return;
             if(rotationFrame)cancelAnimationFrame(rotationFrame);
-            rotationFrame=requestAnimationFrame(()=>{plot3D(currentModel.f,currentModel.g,currentModel.a,currentModel.b,+rotation_angle.value,currentModel.axis,currentModel.k,currentModel.h,currentModel.isDisk);rotationFrame=null;});
+            rotationFrame=requestAnimationFrame(()=>{plot3D(currentModel.f,currentModel.g,currentModel.a,currentModel.b,+rotation_angle.value,currentModel.axis,currentModel.k,currentModel.h,currentModel.isDisk,show_section_input.checked,show_radii_input.checked);rotationFrame=null;});
         });
+        [show_section_input,show_radii_input].forEach(input=>input.addEventListener('change',redrawCurrentVisuals));
         document.getElementById('reset-btn').addEventListener('click',()=>{
             document.getElementById('method-disk').checked=true;
             [f_x_input,g_x_input,a_input,b_input].forEach(input=>input.setValue(''));
             axis_select.value='x';k_val_input.value='-1';h_val_input.value='-1';
+            show_section_input.checked=false;show_radii_input.checked=false;
+            section_legend_item.classList.add('hidden');radius_legend_item.classList.add('hidden');radius_r_legend_item.classList.add('hidden');
             currentModel=null;input_error.classList.remove('show');input_error.textContent='';visuals_container.classList.add('hidden');
             generate_btn_text.textContent='Visualizar sólido';
             handleMethodChange();handleAxisChange();setActiveMathInput(f_x_input);
