@@ -94,6 +94,13 @@
         .method-option label span { display:block; margin-top:.15rem; color:var(--dma-muted); font-size:.75rem; line-height:1.35; }
         .method-option input:checked + label { border-color:var(--dma-blue); background:#edf7fa; box-shadow:0 0 0 2px rgba(11,99,128,.12); }
         .method-option input:focus-visible + label { outline:3px solid rgba(214,165,42,.38); outline-offset:2px; }
+        .method-illustration { margin-bottom:1.5rem; padding:1rem 1.15rem; display:grid; grid-template-columns:minmax(190px,.72fr) minmax(300px,1.28fr); gap:1rem; align-items:center; }
+        .illustration-copy h2 { margin:0; color:var(--dma-navy); font-size:1.05rem; }
+        .illustration-copy p { margin:.35rem 0 .8rem; color:var(--dma-muted); font-size:.82rem; line-height:1.48; }
+        .illustration-toggle { padding:.42rem .72rem; border:1px solid #c8a74e; border-radius:8px; background:#fffaf0; color:#76570a; font-size:.78rem; font-weight:750; }
+        .illustration-stage { min-height:190px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--dma-border); border-radius:11px; background:#fff; }
+        .method-video { display:block; width:100%; height:230px; object-fit:contain; background:#fff; }
+        .method-animation-frame { display:block; width:100%; height:330px; border:0; background:#fff; }
         .axis-controls { display:flex; align-items:center; gap:.55rem; margin-top:.25rem; }
         .axis-controls select { flex:1 1 auto; min-width:0; margin-top:0 !important; }
         .axis-value { flex:0 0 auto; display:flex; align-items:center; gap:.35rem; }
@@ -107,7 +114,7 @@
         .legend-f { background:var(--dma-strong-blue); }.legend-g { background:var(--dma-orange); }.legend-region { background:var(--dma-turquoise); }.legend-axis { background:var(--dma-violet); }.legend-section { background:var(--dma-gold); }.legend-radius { background:var(--dma-navy); }.legend-radius-r { background:var(--dma-turquoise); }
         mjx-container[jax="SVG"]:not([display="true"]){display:inline-block !important;margin:0 .08em !important}
         mjx-container[jax="SVG"]:not([display="true"]) svg{display:inline !important;vertical-align:middle}
-        @media (max-width:640px) { .plot-container { height:380px; } body > .container{padding:22px 12px !important}.dma-header{margin-bottom:1.25rem !important}.method-options{grid-template-columns:1fr} }
+        @media (max-width:640px) { .plot-container { height:380px; } body > .container{padding:22px 12px !important}.dma-header{margin-bottom:1.25rem !important}.method-options{grid-template-columns:1fr}.method-illustration{grid-template-columns:1fr}.method-video{height:190px}.method-animation-frame{height:230px} }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -116,8 +123,69 @@
         <header class="dma-header mb-8">
             <p class="dma-kicker">Universidad Galileo · Departamento de Matemática Aplicada</p>
             <h1 class="text-4xl font-bold text-gray-900">Sólidos de revolución: discos y arandelas</h1>
-            <p class="text-base text-gray-600 mt-2 max-w-3xl">Define una región plana, selecciona el eje de rotación y observa cómo sus secciones perpendiculares generan discos o arandelas. El volumen se aproxima numéricamente mediante \(V=\pi\int_a^b(R^2-r^2)\,dt\).</p>
+            <p id="method-introduction" class="text-base text-gray-600 mt-2 max-w-3xl">Define una región plana y selecciona el eje de rotación. En el método de discos, una sección perpendicular al eje se extiende desde este hasta la frontera: al girar, genera un disco de radio \(R\) y área \(A=\pi R^2\). El volumen se aproxima mediante \(V=\pi\int_a^b R(t)^2\,dt\).</p>
         </header>
+
+        <section id="method-illustration" class="method-illustration bg-white" aria-labelledby="illustration-title">
+            <div class="illustration-copy">
+                <h2 id="illustration-title">Ilustración del método de discos</h2>
+                <button type="button" id="illustration-toggle" class="illustration-toggle" aria-pressed="false">Pausar ilustración</button>
+            </div>
+            <div class="illustration-stage">
+                <iframe id="disk-method-animation" class="method-animation-frame" src="Vista_Previa_Animacion_Discos.html?embedded=1" title="Animación de la construcción de un sólido de revolución mediante discos" loading="eager"></iframe>
+                <iframe id="washer-method-animation" class="method-animation-frame hidden" src="Vista_Previa_Animacion_Discos.html?embedded=1&amp;method=washer" title="Animación de la construcción de un sólido de revolución mediante arandelas" loading="eager"></iframe>
+                <div id="disk-method-animation-legacy" class="section-animation hidden" aria-hidden="true">
+                    <svg viewBox="0 0 760 250" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="diskSolid" x1="0" x2="1"><stop offset="0" stop-color="#f5d978"/><stop offset=".58" stop-color="#e8a33b"/><stop offset="1" stop-color="#cf5c37"/></linearGradient>
+                            <radialGradient id="diskFace" cx=".38" cy=".28"><stop offset="0" stop-color="#fff1ad"/><stop offset=".62" stop-color="#d6a52a"/><stop offset="1" stop-color="#a66b08"/></radialGradient>
+                        </defs>
+                        <line x1="42" y1="154" x2="718" y2="154" stroke="#7357b8" stroke-width="4" stroke-dasharray="10 8"/>
+                        <text x="48" y="142" fill="#7357b8" font-size="16" font-weight="700">eje de rotación</text>
+                        <path d="M78 154 C126 66 206 54 286 82 C324 95 352 86 378 48 L378 154 Z" fill="url(#diskSolid)" fill-opacity=".4" stroke="#a34f2f" stroke-width="2.5"/>
+                        <text x="180" y="43" fill="#526b7d" font-size="15">región plana</text>
+                        <g class="solid-body">
+                            <path d="M408 154 C438 95 488 73 530 91 C568 107 606 94 676 39 L676 154 Z" fill="url(#diskSolid)" stroke="#a34f2f" stroke-width="2.5"/>
+                            <path d="M408 154 C438 213 488 235 530 217 C568 201 606 214 676 269 L676 154 Z" fill="url(#diskSolid)" fill-opacity=".64" stroke="#a34f2f" stroke-width="2.5" transform="translate(0 -58)"/>
+                            <ellipse cx="676" cy="125" rx="15" ry="86" fill="#d96d43" fill-opacity=".74" stroke="#a34f2f" stroke-width="2.5"/>
+                        </g>
+                        <g class="disk-shape">
+                            <ellipse cx="548" cy="154" rx="13" ry="68" fill="url(#diskFace)" fill-opacity=".95" stroke="#76570a" stroke-width="3"/>
+                            <line x1="548" y1="154" x2="548" y2="86" stroke="#12324a" stroke-width="3"/>
+                            <text x="559" y="116" fill="#12324a" font-size="19" font-style="italic">R</text>
+                        </g>
+                        <g class="rotation-arrow"><path d="M326 176 C354 207 382 206 404 179" fill="none" stroke="#0b6380" stroke-width="5" stroke-linecap="round"/><path d="M396 176 L407 174 L404 186" fill="none" stroke="#0b6380" stroke-width="4"/></g>
+                    </svg>
+                </div>
+                <div id="washer-method-animation-legacy" class="section-animation hidden" aria-hidden="true">
+                    <svg viewBox="0 0 760 250" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="washerSolid" x1="0" x2="1"><stop offset="0" stop-color="#f7df7f"/><stop offset=".58" stop-color="#e4a13d"/><stop offset="1" stop-color="#ca5735"/></linearGradient>
+                            <radialGradient id="washerFace"><stop offset="0" stop-color="#fff7d4"/><stop offset=".55" stop-color="#edc756"/><stop offset="1" stop-color="#a66b08"/></radialGradient>
+                            <mask id="washerHole"><rect width="760" height="250" fill="white"/><ellipse cx="548" cy="154" rx="7" ry="30" fill="black"/></mask>
+                        </defs>
+                        <line x1="42" y1="176" x2="718" y2="176" stroke="#7357b8" stroke-width="4" stroke-dasharray="10 8"/>
+                        <text x="48" y="165" fill="#7357b8" font-size="16" font-weight="700">eje de rotación</text>
+                        <path d="M98 137 L98 77 C160 82 221 69 286 35 L286 110 C221 139 160 147 98 137 Z" fill="url(#washerSolid)" fill-opacity=".48" stroke="#a34f2f" stroke-width="2.5"/>
+                        <text x="164" y="48" fill="#526b7d" font-size="15">región plana</text>
+                        <g class="solid-body">
+                            <path d="M408 132 C466 137 532 118 676 51 L676 108 C532 159 466 169 408 160 Z" fill="url(#washerSolid)" stroke="#a34f2f" stroke-width="2.5"/>
+                            <path d="M408 220 C466 215 532 234 676 301 L676 244 C532 193 466 183 408 192 Z" fill="url(#washerSolid)" fill-opacity=".58" stroke="#a34f2f" stroke-width="2.5" transform="translate(0 -44)"/>
+                            <path d="M408 160 C470 169 535 154 676 108 M408 192 C470 183 535 198 676 244" fill="none" stroke="#0b6380" stroke-width="3" transform="translate(0 -44)"/>
+                        </g>
+                        <g class="washer-ring">
+                            <ellipse cx="548" cy="154" rx="13" ry="72" fill="url(#washerFace)" stroke="#76570a" stroke-width="3" mask="url(#washerHole)"/>
+                            <ellipse cx="548" cy="154" rx="7" ry="30" fill="#fff" stroke="#0b6380" stroke-width="3"/>
+                            <line x1="548" y1="154" x2="548" y2="82" stroke="#12324a" stroke-width="2.5"/>
+                            <line x1="548" y1="154" x2="548" y2="124" stroke="#0b6380" stroke-width="2.5"/>
+                            <text x="558" y="107" fill="#12324a" font-size="18" font-style="italic">R</text>
+                            <text x="558" y="141" fill="#0b6380" font-size="18" font-style="italic">r</text>
+                        </g>
+                        <g class="rotation-arrow"><path d="M326 190 C354 221 382 220 404 193" fill="none" stroke="#0b6380" stroke-width="5" stroke-linecap="round"/><path d="M396 190 L407 188 L404 200" fill="none" stroke="#0b6380" stroke-width="4"/></g>
+                    </svg>
+                </div>
+            </div>
+        </section>
 
         <!-- Panel de Controles -->
         <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
@@ -278,6 +346,12 @@
         const f_x_input = document.getElementById('f_x');
         const g_x_input = document.getElementById('g_x');
         const method_inputs = document.querySelectorAll('input[name="section-method"]');
+        const method_illustration = document.getElementById('method-illustration');
+        const method_introduction = document.getElementById('method-introduction');
+        const illustration_title = document.getElementById('illustration-title');
+        const illustration_toggle = document.getElementById('illustration-toggle');
+        const disk_method_animation = document.getElementById('disk-method-animation');
+        const washer_method_animation = document.getElementById('washer-method-animation');
         const second_function_container = document.getElementById('second-function-container');
         const second_legend_item = document.getElementById('second-legend-item');
         const f_label = document.getElementById('f-label');
@@ -310,6 +384,7 @@
         let rotationFrame = null;
         let activeMathInput = f_x_input;
         let mathEditorReady = false;
+        let illustrationPaused=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const allowedSymbols=new Set(['x','y','pi','e','sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','sqrt','nthRoot','abs','exp','log','ln','min','max']);
         function expressionToLatex(tree){
             return tree.toTex({handler:(node,options)=>{
@@ -410,6 +485,34 @@
         function selectedMethod(){
             return document.querySelector('input[name="section-method"]:checked').value;
         }
+        function setIllustrationPlayback(element,shouldPause){
+            if(element.tagName==='IFRAME'){
+                element.contentWindow?.postMessage({type:'disk-animation-control',paused:shouldPause},'*');
+            }else if(shouldPause){
+                element.pause();
+            }else{
+                element.play().catch(()=>{});
+            }
+        }
+        function updateMethodIllustration(){
+            const isDisk=selectedMethod()==='disk';
+            illustration_title.textContent=isDisk?'Ilustración del método de discos':'Ilustración del método de arandelas';
+            method_introduction.innerHTML=isDisk
+                ? 'Define una región plana y selecciona el eje de rotación. En el método de discos, una sección perpendicular al eje se extiende desde este hasta la frontera: al girar, genera un disco de radio \\(R\\) y área \\(A=\\pi R^2\\). El volumen se aproxima mediante \\(V=\\pi\\int_a^b R(t)^2\\,dt\\).'
+                : 'Define una región plana y selecciona el eje de rotación. En el método de arandelas, una sección perpendicular queda comprendida entre los radios interior \\(r\\) y exterior \\(R\\): al girar, genera una arandela de área \\(A=\\pi(R^2-r^2)\\). El volumen se aproxima mediante \\(V=\\pi\\int_a^b [R(t)^2-r(t)^2]\\,dt\\).';
+            disk_method_animation.classList.toggle('hidden',!isDisk);
+            washer_method_animation.classList.toggle('hidden',isDisk);
+            const activeVideo=isDisk?disk_method_animation:washer_method_animation;
+            const inactiveVideo=isDisk?washer_method_animation:disk_method_animation;
+            setIllustrationPlayback(inactiveVideo,true);
+            setIllustrationPlayback(activeVideo,illustrationPaused);
+            illustration_toggle.textContent=illustrationPaused?'Reproducir ilustración':'Pausar ilustración';
+            illustration_toggle.setAttribute('aria-pressed',String(illustrationPaused));
+            if(window.MathJax?.typesetPromise){
+                MathJax.typesetClear?.([method_introduction]);
+                MathJax.typesetPromise([method_introduction]).catch(error=>console.warn('MathJax:',error));
+            }
+        }
         function handleMethodChange(){
             const isDisk=selectedMethod()==='disk';
             second_function_container.classList.toggle('hidden',isDisk);
@@ -417,6 +520,7 @@
             f_label.textContent='Frontera exterior';
             g_label.textContent='Frontera interior';
             if(isDisk&&activeMathInput===g_x_input)setActiveMathInput(f_x_input);
+            updateMethodIllustration();
         }
         function inputName(input){
             if(input===f_x_input)return 'Frontera exterior';
@@ -948,6 +1052,11 @@
         // --- Event Listeners ---
         axis_select.addEventListener('change', handleAxisChange);
         method_inputs.forEach(input=>input.addEventListener('change',handleMethodChange));
+        disk_method_animation.addEventListener('load',()=>setIllustrationPlayback(disk_method_animation,illustrationPaused||selectedMethod()!=='disk'));
+        illustration_toggle.addEventListener('click',()=>{
+            illustrationPaused=!illustrationPaused;
+            updateMethodIllustration();
+        });
         generate_btn.addEventListener('click', handleGenerateClick);
         rotation_angle.addEventListener('input',()=>{
             rotation_value.textContent=rotation_angle.value;
